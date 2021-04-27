@@ -8,8 +8,6 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
 	tm "github.com/tendermint/tendermint/types"
-
-	jobs2 "github.com/axelarnetwork/axelar-core/cmd/axelard/cmd/vald/jobs"
 )
 
 // FilteredSubscriber filters events of a subscriber according to a predicate
@@ -19,7 +17,8 @@ type FilteredSubscriber struct {
 	predicate func(event types.Event) bool
 }
 
-func newFilteredSubscriber(subscriber pubsub.Subscriber, predicate func(event types.Event) bool) FilteredSubscriber {
+// NewFilteredSubscriber creates a FilteredSubscriber
+func NewFilteredSubscriber(subscriber pubsub.Subscriber, predicate func(event types.Event) bool) FilteredSubscriber {
 	s := FilteredSubscriber{Subscriber: subscriber, predicate: predicate, eventChan: make(chan types.Event)}
 
 	go func() {
@@ -42,33 +41,6 @@ func (s FilteredSubscriber) Events() <-chan types.Event {
 	return s.eventChan
 }
 
-// Consume processes all events from the given subscriber with the given function.
-// Do not consume the same subscriber multiple times.
-func Consume(subscriber FilteredSubscriber, process func(attributes []sdk.Attribute) error) jobs2.Job {
-	return func(errChan chan<- error) {
-	loop:
-		for {
-			select {
-			case e := <-subscriber.Events():
-				go func() {
-					defer recovery(errChan)
-					if err := process(e.Attributes); err != nil {
-						errChan <- err
-					}
-				}()
-			case <-subscriber.Done():
-				break loop
-			}
-		}
-	}
-}
-
-func recovery(errChan chan<- error) {
-	if r := recover(); r != nil {
-		errChan <- fmt.Errorf("job panicked:%s", r)
-	}
-}
-
 // MustSubscribe panics if Subscribe fails
 func MustSubscribe(hub *Hub, eventType string, module string, action string) FilteredSubscriber {
 	subscriber, err := Subscribe(hub, eventType, module, action)
@@ -86,7 +58,7 @@ func Subscribe(hub *Hub, eventType string, module string, action string) (Filter
 	if err != nil {
 		return FilteredSubscriber{}, err
 	}
-	return newFilteredSubscriber(
+	return NewFilteredSubscriber(
 		subscriber,
 		func(e types.Event) bool {
 			return e.Type == eventType && e.Module == module && e.Action == action

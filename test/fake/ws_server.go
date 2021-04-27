@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/axelarnetwork/axelar-core/app"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
@@ -28,7 +27,7 @@ import (
 func MakeCodec() *codec.LegacyAmino {
 	var cdc = codec.New()
 	tmrpctypes.RegisterAmino(cdc)
-	app.ModuleBasics.RegisterCodec(cdc)
+	//app.ModuleBasics.RegisterCodec(cdc)
 	vesting.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
 	//codec.RegisterCrypto(cdc)
