@@ -1,0 +1,76 @@
+  {
+    "query": "message.action='VotePubKey'",
+    "data": {
+      "type": "tendermint/event/Tx",
+      "value": {
+        "TxResult": {
+          "height": "41",
+          "index": 0,
+          "tx": "uQIoKBapCr8B66ugzwoUpVo4fWoNiAS+tlCzlU/QGvkcx/USHQoDdHNzEgtLZXlHZW5TdGFydBoJa2V5LWJ0Y18wGoMBK/+BAwEBCXB1YmxpY0tleQH/ggABAwEBQwEEAAEBWAH/hAABAVkB/4QAAAAK/4MFAQL/hgAAAEv/ggECASECODOXXbJ2Q2TLrK0Tsu1Pfmk/JksHPpPKM3v1hwVyeA4BIQKh+TlQ9btV8JOON8g8yFYhMZLs9re+EXUlljGPyc/VUAASBRCAreIEGmoKJuta6YchAhvQeZJBGllo7Mbhl8s+3tyVSg8B+0VLPENxcEwE+WlREkBV7lJbGXKYfGRseyDQIE3+e6OGq28TAo4FgkVaLdYyp1wVgf+M+TsuF8YGOy0kVVDWVyEOLJof/+vu2Up73j9P",
+          "result": {
+            "log": "[{\"msg_index\":0,\"log\":\"\",\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"VotePubKey\"},{\"key\":\"module\",\"value\":\"tss\"},{\"key\":\"sender\",\"value\":\"cosmos154drslt2pkyqf04k2zee2n7srtu3e3l40hgrv6\"},{\"key\":\"poll\",\"value\":\"tssKeyGenStartkey-btc_0\"},{\"key\":\"key\",\"value\":\"+\\ufffd\\ufffd\\u0003\\u0001\\u0001\\tpublicKey\\u0001\\ufffd\\ufffd\\u0000\\u0001\\u0003\\u0001\\u0001C\\u0001\\u0004\\u0000\\u0001\\u0001X\\u0001\\ufffd\\ufffd\\u0000\\u0001\\u0001Y\\u0001\\ufffd\\ufffd\\u0000\\u0000\\u0000\\n\\ufffd\\ufffd\\u0005\\u0001\\u0002\\ufffd\\ufffd\\u0000\\u0000\\u0000K\\ufffd\\ufffd\\u0001\\u0002\\u0001!\\u000283\\ufffd]\\ufffdvCdˬ\\ufffd\\u0013\\ufffd\\ufffdO~i?\\u0026K\\u0007\\u003e\\ufffd\\ufffd3{\\ufffd\\ufffd\\u0005rx\\u000e\\u0001!\\u0002\\ufffd\\ufffd9P\\ufffd\\ufffdU\\ufffd\\ufffd\\ufffd7\\ufffd\\u003c\\ufffdV!1\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\u0011u%\\ufffd1\\ufffd\\ufffd\\ufffd\\ufffdP\\u0000\"}]}]}]",
+            "gas_wanted": "10000000",
+            "gas_used": "58347",
+            "events": [
+              {
+                "type": "message",
+                "attributes": [
+                  {
+                    "key": "YWN0aW9u",
+                    "value": "Vm90ZVB1YktleQ=="
+                  }
+                ]
+              },
+              {
+                "type": "message",
+                "attributes": [
+                  {
+                    "key": "bW9kdWxl",
+                    "value": "dHNz"
+                  },
+                  {
+                    "key": "c2VuZGVy",
+                    "value": "Y29zbW9zMTU0ZHJzbHQycGt5cWYwNGsyemVlMm43c3J0dTNlM2w0MGhncnY2"
+                  },
+                  {
+                    "key": "cG9sbA==",
+                    "value": "dHNzS2V5R2VuU3RhcnRrZXktYnRjXzA="
+                  },
+                  {
+                    "key": "a2V5",
+                    "value": "K/+BAwEBCXB1YmxpY0tleQH/ggABAwEBQwEEAAEBWAH/hAABAVkB/4QAAAAK/4MFAQL/hgAAAEv/ggECASECODOXXbJ2Q2TLrK0Tsu1Pfmk/JksHPpPKM3v1hwVyeA4BIQKh+TlQ9btV8JOON8g8yFYhMZLs9re+EXUlljGPyc/VUAA="
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    "events": {
+      "message.module": [
+        "tss"
+      ],
+      "message.sender": [
+        "cosmos154drslt2pkyqf04k2zee2n7srtu3e3l40hgrv6"
+      ],
+      "message.poll": [
+        "tssKeyGenStartkey-btc_0"
+      ],
+      "message.key": [
+        "+\ufffd\ufffd\u0003\u0001\u0001\tpublicKey\u0001\ufffd\ufffd\u0000\u0001\u0003\u0001\u0001C\u0001\u0004\u0000\u0001\u0001X\u0001\ufffd\ufffd\u0000\u0001\u0001Y\u0001\ufffd\ufffd\u0000\u0000\u0000\n\ufffd\ufffd\u0005\u0001\u0002\ufffd\ufffd\u0000\u0000\u0000K\ufffd\ufffd\u0001\u0002\u0001!\u000283\ufffd]\ufffdvCdˬ\ufffd\u0013\ufffd\ufffdO~i?\u0026K\u0007\u003e\ufffd\ufffd3{\ufffd\ufffd\u0005rx\u000e\u0001!\u0002\ufffd\ufffd9P\ufffd\ufffdU\ufffd\ufffd\ufffd7\ufffd\u003c\ufffdV!1\ufffd\ufffd\ufffd\ufffd\ufffd\u0011u%\ufffd1\ufffd\ufffd\ufffd\ufffdP\u0000"
+      ],
+      "tm.event": [
+        "Tx"
+      ],
+      "tx.hash": [
+        "765C4A72D81D966CCDB0AB739D3384D85283A24C4B2B1603B10CE10F77FEB8DC"
+      ],
+      "tx.height": [
+        "41"
+      ],
+      "message.action": [
+        "VotePubKey"
+      ]
+    }
+  }
