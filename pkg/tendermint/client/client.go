@@ -2,7 +2,7 @@ package client
 
 import (
 	"fmt"
-	"github.com/axelarnetwork/c2d2/pkg/errors"
+	"github.com/axelarnetwork/tm-events/pkg/errors"
 	tmClient "github.com/tendermint/tendermint/rpc/client/http"
 	"strings"
 )

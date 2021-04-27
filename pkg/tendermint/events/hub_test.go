@@ -10,9 +10,9 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/types"
 
-	"github.com/axelarnetwork/c2d2/test/fake"
 	"github.com/axelarnetwork/tm-events/pkg/pubsub"
 	"github.com/axelarnetwork/tm-events/pkg/tendermint/client"
+	"github.com/axelarnetwork/tm-events/test/fake"
 
 	// "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

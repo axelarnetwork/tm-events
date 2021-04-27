@@ -5,7 +5,6 @@ go 1.16
 require (
 	github.com/acrazing/cheapjson v0.0.0-20200211033838-7c9291c6a465
 	github.com/axelarnetwork/axelar-core v0.2.1-0.20210427140533-c43d6c05746c
-	github.com/axelarnetwork/c2d2 v0.0.0-20210427141847-ab8e0a11effe
 	github.com/boz/go-lifecycle v0.1.0
 	github.com/cosmos/cosmos-sdk v0.42.4
 	github.com/stretchr/testify v1.7.0
