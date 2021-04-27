@@ -189,7 +189,7 @@ func (c *EventsClient) getSubscription(query string, sourceFn EventSourceFn) (<-
 }
 
 // More: https://docs.tendermint.com/master/rpc/#/Websocket/subscribe
-// github.com/tendermint/tendermint@v0.33.7/rpc/core/filtered.go
+// github.com/tendermint/tendermint@v0.33.7/rpc/core/events.go
 func (c *EventsClient) Subscribe(ctx context.Context, subscriber, query string, outCapacity ...int) (<-chan tmrpctypes.ResultEvent, error) {
 	out, err := c.getSubscription(query, c.SourceFn)
 	if err != nil {

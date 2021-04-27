@@ -2,12 +2,13 @@ package utils
 
 import (
 	"fmt"
+	events2 "github.com/axelarnetwork/axelar-core/cmd/axelard/cmd/vald/events"
 	"github.com/axelarnetwork/tm-events/pkg/tendermint/events"
 	"github.com/axelarnetwork/tm-events/pkg/tendermint/types"
 )
 
 func WaitActionAsync(hub *events.Hub, eventType string, module string, action string) (events.WaitEventFunc, error) {
-	sub, err := events.Subscribe(hub, eventType, module, action)
+	sub, err := events2.Subscribe(hub, eventType, module, action)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +29,7 @@ func WaitActionAsync(hub *events.Hub, eventType string, module string, action st
 }
 
 func FilterActionAsync(hub *events.Hub, eventType string, module string, action string) (events.NextEventFunc, error) {
-	sub, err := events.Subscribe(hub, eventType, module, action)
+	sub, err := events2.Subscribe(hub, eventType, module, action)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +57,7 @@ func FilterActionAsync(hub *events.Hub, eventType string, module string, action 
 	}, nil
 }
 
-func ConsumeFilteredSubscriptionEvents(sub events.FilteredSubscriber, evChan chan types.Event, errChan chan error) {
+func ConsumeFilteredSubscriptionEvents(sub events2.FilteredSubscriber, evChan chan types.Event, errChan chan error) {
 	for {
 		select {
 		case event := <-sub.Events():
@@ -70,10 +71,10 @@ func ConsumeFilteredSubscriptionEvents(sub events.FilteredSubscriber, evChan cha
 	}
 }
 
-func NextActionAsync(hub *events.Hub, eventType string, module string, action string) (events.WaitEventFunc, events.FilteredSubscriber, error) {
-	sub, err := events.Subscribe(hub, eventType, module, action)
+func NextActionAsync(hub *events.Hub, eventType string, module string, action string) (events.WaitEventFunc, events2.FilteredSubscriber, error) {
+	sub, err := events2.Subscribe(hub, eventType, module, action)
 	if err != nil {
-		return nil, events.FilteredSubscriber{}, err
+		return nil, events2.FilteredSubscriber{}, err
 	}
 
 	evChan := make(chan types.Event, 1)
@@ -88,7 +89,7 @@ func NextActionAsync(hub *events.Hub, eventType string, module string, action st
 	}, sub, nil
 }
 
-func FilterNextAction(wait events.WaitEventFunc, sub events.FilteredSubscriber, filter events.EventFilterFunc) (types.Event, error) {
+func FilterNextAction(wait events.WaitEventFunc, sub events2.FilteredSubscriber, filter events.EventFilterFunc) (types.Event, error) {
 	for {
 		ev, err := wait()
 		if err != nil {
