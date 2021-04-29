@@ -3,11 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/axelarnetwork/tm-events/pkg/tendermint"
 	"github.com/axelarnetwork/tm-events/pkg/tendermint/client"
 	"github.com/axelarnetwork/tm-events/pkg/tendermint/events"
 	tmtypes "github.com/axelarnetwork/tm-events/pkg/tendermint/types"
-	"github.com/axelarnetwork/tm-events/pkg/tendermint/utils"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	query "github.com/tendermint/tendermint/libs/pubsub/query"
 	"os"
@@ -116,7 +114,7 @@ var CmdWaitAction = Cmd{
 		module := args[1]
 		action := args[2]
 
-		wait, err := utils.WaitActionAsync(c.Hub, eventType, module, action)
+		wait, err := events.WaitActionAsync(c.Hub, eventType, module, action)
 		if err != nil {
 			return err
 		}
@@ -135,7 +133,7 @@ var CmdWaitQuery = Cmd{
 	Usage:   "<query>",
 	MinArgs: 1,
 	Target: func(c *Context, args []string) error {
-		wait, err := events.WaitEventAsync(c.Hub, query.MustParse(args[0]))
+		wait, err := events.WaitQueryAsync(c.Hub, query.MustParse(args[0]))
 		if err != nil {
 			return err
 		}
@@ -168,7 +166,7 @@ var CmdWaitTxEvent = Cmd{
 			params = append(params, tmtypes.Param{Key: sdk.AttributeKeyAction, Value: action})
 		}
 
-		wait, err := events.WaitEventAsync(c.Hub, tendermint.MakeTxEventQuery(eventType, params...))
+		wait, err := events.WaitQueryAsync(c.Hub, tmtypes.MakeTxEventQuery(eventType, params...))
 		if err != nil {
 			return err
 		}

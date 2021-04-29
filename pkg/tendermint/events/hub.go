@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/axelarnetwork/tm-events/pkg/pubsub"
-	"github.com/axelarnetwork/tm-events/pkg/tendermint"
+	"github.com/axelarnetwork/tm-events/pkg/tendermint/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
 	tmpubsub "github.com/tendermint/tendermint/libs/pubsub"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -36,7 +36,7 @@ func NewHub(events client.EventsClient) Hub {
 
 // Subscribe to messages of a particular action
 func (h *Hub) SubscribeMessage(action string) (pubsub.Subscriber, error) {
-	query := tendermint.MsgQueryAction(action)
+	query := types.MsgQueryAction(action)
 	sub, err := h.Subscribe(query)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to subscribe to query '%s'", query.String())
