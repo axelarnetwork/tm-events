@@ -53,13 +53,15 @@ func WaitEventAsync(hub *Hub, query tmpubsub.Query) (WaitEventFunc, error) {
 	}, nil
 }
 
+const LargeBuffSize = 32768
+
 func ProcessQuery(hub *Hub, query tmpubsub.Query, callback func(event types.Event)) (func() error, error) {
 	sub, err := hub.Subscribe(query)
 	if err != nil {
 		return nil, err
 	}
 
-	evChan := make(chan types.Event, 1)
+	evChan := make(chan types.Event, LargeBuffSize)
 	errChan := make(chan error, 1)
 	catchChan := make(chan error, 1)
 

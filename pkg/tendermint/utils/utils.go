@@ -88,7 +88,7 @@ func NextActionAsync(hub *events.Hub, eventType string, module string, action st
 	}, sub, nil
 }
 
-func FilterNextAction(wait events.WaitEventFunc, sub events.FilteredSubscriber, filter events.EventFilterFunc) (types.Event, error) {
+func FilterNextAction(wait events.WaitEventFunc, filter events.EventFilterFunc) (types.Event, error) {
 	for {
 		ev, err := wait()
 		if err != nil {
@@ -96,7 +96,6 @@ func FilterNextAction(wait events.WaitEventFunc, sub events.FilteredSubscriber, 
 		}
 
 		if filter(ev) {
-			sub.Close()
 			return ev, nil
 		}
 	}
