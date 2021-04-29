@@ -44,7 +44,6 @@ func NextActionAsync(hub *Hub, eventType string, module string, action string) (
 	}, sub, nil
 }
 
-
 func GetFilterableWaitActionAsync(hub *Hub, eventType string, module string, action string) (FilterableEventFunc, error) {
 	sub, err := Subscribe(hub, eventType, module, action)
 	if err != nil {
