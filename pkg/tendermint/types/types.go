@@ -64,3 +64,11 @@ func GetAttrString(attrs []sdk.Attribute, key string) (string, error) {
 	}
 	return "", ErrNotFound
 }
+
+func MapifyAttributes(event Event) map[string]string {
+	m := map[string]string{}
+	for _, attribute := range event.Attributes {
+		m[attribute.Key] = attribute.Value
+	}
+	return m
+}
