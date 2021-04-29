@@ -8,32 +8,13 @@ import (
 	tmpubsub "github.com/tendermint/tendermint/libs/pubsub"
 )
 
-func WaitAction(bus *Hub, action string) (types.Event, error) {
-	sub, err := bus.SubscribeMessage(action)
-	if err != nil {
-		return types.Event{}, err
-	}
-
-	for {
-		select {
-		case ev := <-sub.Events():
-			if txEvent, ok := ev.(types.Event); ok {
-				fmt.Printf("%+v\n", ev)
-				return txEvent, nil
-			}
-		case <-sub.Done():
-			return types.Event{}, fmt.Errorf("subscription closed before '%s' action was detected", action)
-		}
-	}
-}
-
 type EventFilterFunc func(event types.Event) bool
 type WaitEventFunc func() (types.Event, error)
-type NextEventFunc func(filterFunc EventFilterFunc) (types.Event, error)
+type FilterableEventFunc func(filterFunc EventFilterFunc) (types.Event, error)
 
 var InvalidEventErr = errors.New("invalid event")
 
-func WaitEventAsync(hub *Hub, query tmpubsub.Query) (WaitEventFunc, error) {
+func WaitQueryAsync(hub *Hub, query tmpubsub.Query) (WaitEventFunc, error) {
 	// todo: test events are caught before WaitEventFunc is called
 	sub, err := hub.Subscribe(query)
 	if err != nil {
