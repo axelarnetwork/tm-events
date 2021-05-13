@@ -17,7 +17,6 @@ func WaitActionAsync(hub *Hub, eventType string, module string, action string) (
 	go ConsumeFilteredSubscriptionEvents(sub, evChan, errChan)
 
 	return func() (types.Event, error) {
-		fmt.Printf("> Waiting for next action %s.%s.action='%s'...\n", module, eventType, action)
 		ev := <-evChan
 		err := <-errChan
 		sub.Close()
@@ -38,7 +37,7 @@ func NextActionAsync(hub *Hub, eventType string, module string, action string) (
 	go ConsumeFilteredSubscriptionEvents(sub, evChan, errChan)
 
 	return func() (ev types.Event, err error) {
-		fmt.Printf("> Waiting for next action %s.%s.action='%s'...\n", module, eventType, action)
+		//fmt.Printf("> Waiting for next action %s.%s.action='%s'...\n", module, eventType, action)
 
 		return <-evChan, <-errChan
 	}, sub, nil
