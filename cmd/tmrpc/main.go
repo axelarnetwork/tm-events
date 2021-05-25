@@ -7,6 +7,7 @@ import (
 	"github.com/axelarnetwork/tm-events/pkg/tendermint/events"
 	tmtypes "github.com/axelarnetwork/tm-events/pkg/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	tmlog "github.com/tendermint/tendermint/libs/log"
 	query "github.com/tendermint/tendermint/libs/pubsub/query"
 	"os"
 	"strings"
@@ -44,12 +45,14 @@ func usage() {
 }
 
 func makeContext(rpcUrl, endpoint string) (*Context, error) {
-	cl, err := client.NewClient(rpcUrl, endpoint)
+	logger := tmlog.NewTMLogger(os.Stdout)
+
+	cl, err := client.NewClient(rpcUrl, endpoint, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	hub := events.NewHub(cl)
+	hub := events.NewHub(cl, logger)
 	return &Context{
 		TM:  cl,
 		Hub: &hub,
