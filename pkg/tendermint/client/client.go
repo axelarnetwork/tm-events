@@ -3,12 +3,14 @@ package client
 import (
 	"fmt"
 	"github.com/axelarnetwork/tm-events/pkg/errors"
+	tmlog "github.com/tendermint/tendermint/libs/log"
 	tmClient "github.com/tendermint/tendermint/rpc/client/http"
 	"strings"
 )
 
 type RPCClient struct {
 	*tmClient.HTTP
+	logger tmlog.Logger
 }
 
 const (
@@ -16,7 +18,7 @@ const (
 	DefaultAddress    = "http://localhost:26657"
 )
 
-func NewClient(address string, endpoint string) (*RPCClient, error) {
+func NewClient(address string, endpoint string, logger tmlog.Logger) (*RPCClient, error) {
 	wrap := errors.Wrapper("failed to create tendermint client")
 
 	if !validEndpoint(endpoint) {
@@ -32,9 +34,9 @@ func NewClient(address string, endpoint string) (*RPCClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect tendermint client at %s%s: %w", address, endpoint, err)
 	}
-	fmt.Printf("Connected tendermint client at %s\n", address)
+	logger.Info("Connected tendermint client at %s\n", address)
 
-	return &RPCClient{c}, nil
+	return &RPCClient{c, logger}, nil
 }
 
 func validEndpoint(ep string) bool {

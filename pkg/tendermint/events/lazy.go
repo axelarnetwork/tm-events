@@ -17,7 +17,7 @@ func WaitActionAsync(hub *Hub, eventType string, module string, action string) (
 	go ConsumeFilteredSubscriptionEvents(sub, evChan, errChan)
 
 	return func() (types.Event, error) {
-		hub.Logger.Debug("Waiting for action %s.%s.action='%s'", module, eventType, action, "module", module, "eventType", eventType, "action", action)
+		hub.Logger.Debug(fmt.Sprintf("Waiting for action %s.%s.action='%s'", module, eventType, action), "module", module, "eventType", eventType, "action", action)
 		ev := <-evChan
 		err := <-errChan
 		sub.Close()
@@ -38,7 +38,7 @@ func NextActionAsync(hub *Hub, eventType string, module string, action string) (
 	go ConsumeFilteredSubscriptionEvents(sub, evChan, errChan)
 
 	return func() (ev types.Event, err error) {
-		hub.Logger.Debug("Waiting for next action %s.%s.action='%s'", module, eventType, action, "module", module, "eventType", eventType, "action", action)
+		hub.Logger.Debug(fmt.Sprintf("Waiting for next action %s.%s.action='%s'", module, eventType, action), "module", module, "eventType", eventType, "action", action)
 
 		return <-evChan, <-errChan
 	}, sub, nil
