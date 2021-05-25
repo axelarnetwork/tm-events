@@ -6,9 +6,9 @@ import (
 	"github.com/axelarnetwork/tm-events/pkg/pubsub"
 	"github.com/axelarnetwork/tm-events/pkg/tendermint/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
+	tmlog "github.com/tendermint/tendermint/libs/log"
 	tmpubsub "github.com/tendermint/tendermint/libs/pubsub"
 	"github.com/tendermint/tendermint/rpc/client"
-	"log"
 	"sync"
 )
 
@@ -19,18 +19,18 @@ type Hub struct {
 	ctx   context.Context
 
 	relays map[string]Relay
-	logger *log.Logger
+	Logger tmlog.Logger
 
 	mtx sync.RWMutex
 }
 
-func NewHub(events client.EventsClient) Hub {
+func NewHub(events client.EventsClient, logger tmlog.Logger) Hub {
 	return Hub{
 		evBus:  &events,
 		ctx:    context.Background(),
 		relays: make(map[string]Relay),
-		//todo: properly instantiate this logger
-		logger: &log.Logger{},
+		//todo: properly instantiate this Logger
+		Logger: logger,
 	}
 }
 
