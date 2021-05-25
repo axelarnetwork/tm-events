@@ -14,26 +14,6 @@ type FilterableEventFunc func(filterFunc EventFilterFunc) (types.Event, error)
 
 var InvalidEventErr = errors.New("invalid event")
 
-func WaitQueryAsync(hub *Hub, query tmpubsub.Query) (WaitEventFunc, error) {
-	// todo: test events are caught before WaitEventFunc is called
-	sub, err := hub.Subscribe(query)
-	if err != nil {
-		return nil, err
-	}
-
-	evChan := make(chan types.Event, 1)
-	errChan := make(chan error, 1)
-
-	go consumeSubscriptionEvents(sub, evChan, errChan)
-
-	return func() (types.Event, error) {
-		defer sub.Close()
-		fmt.Printf("> Waiting for event from query \"%s\"...\n", query)
-
-		return <-evChan, <-errChan
-	}, nil
-}
-
 const LargeBuffSize = 32768
 
 func ProcessQuery(hub *Hub, query tmpubsub.Query, callback func(event types.Event)) (func() error, error) {

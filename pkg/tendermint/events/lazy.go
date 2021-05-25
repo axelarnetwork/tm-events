@@ -3,6 +3,7 @@ package events
 import (
 	"fmt"
 	"github.com/axelarnetwork/tm-events/pkg/tendermint/types"
+	tmpubsub "github.com/tendermint/tendermint/libs/pubsub"
 )
 
 func WaitActionAsync(hub *Hub, eventType string, module string, action string) (WaitEventFunc, error) {
@@ -17,10 +18,10 @@ func WaitActionAsync(hub *Hub, eventType string, module string, action string) (
 	go ConsumeFilteredSubscriptionEvents(sub, evChan, errChan)
 
 	return func() (types.Event, error) {
-		hub.Logger.Debug(fmt.Sprintf("Waiting for action %s.%s.action='%s'", module, eventType, action), "module", module, "eventType", eventType, "action", action)
+		defer sub.Close()
+		hub.Logger.Debug(fmt.Sprintf("waiting for action %s.%s.action='%s'", module, eventType, action), "module", module, "eventType", eventType, "action", action)
 		ev := <-evChan
 		err := <-errChan
-		sub.Close()
 
 		return ev, err
 	}, nil
@@ -38,10 +39,30 @@ func NextActionAsync(hub *Hub, eventType string, module string, action string) (
 	go ConsumeFilteredSubscriptionEvents(sub, evChan, errChan)
 
 	return func() (ev types.Event, err error) {
-		hub.Logger.Debug(fmt.Sprintf("Waiting for next action %s.%s.action='%s'", module, eventType, action), "module", module, "eventType", eventType, "action", action)
+		hub.Logger.Debug(fmt.Sprintf("waiting for next action %s.%s.action='%s'", module, eventType, action), "module", module, "eventType", eventType, "action", action)
 
 		return <-evChan, <-errChan
 	}, sub, nil
+}
+
+func WaitQueryAsync(hub *Hub, query tmpubsub.Query) (WaitEventFunc, error) {
+	// todo: test events are caught before WaitEventFunc is called
+	sub, err := hub.Subscribe(query)
+	if err != nil {
+		return nil, err
+	}
+
+	evChan := make(chan types.Event, 1)
+	errChan := make(chan error, 1)
+
+	go consumeSubscriptionEvents(sub, evChan, errChan)
+
+	return func() (types.Event, error) {
+		defer sub.Close()
+		hub.Logger.Debug(fmt.Sprintf("waiting for event from query \"%s\"", query.String()))
+
+		return <-evChan, <-errChan
+	}, nil
 }
 
 func GetFilterableWaitActionAsync(hub *Hub, eventType string, module string, action string) (FilterableEventFunc, error) {
