@@ -34,7 +34,7 @@ func NewClient(address string, endpoint string, logger tmlog.Logger) (*RPCClient
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect tendermint client at %s%s: %w", address, endpoint, err)
 	}
-	logger.Info("Connected tendermint client at %s\n", address)
+	logger.Info("Connected tendermint client at " + address)
 
 	return &RPCClient{c, logger}, nil
 }
