@@ -2,10 +2,12 @@ package events
 
 import (
 	"fmt"
+
 	"github.com/axelarnetwork/tm-events/pkg/pubsub"
 	"github.com/axelarnetwork/tm-events/pkg/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
 	tm "github.com/tendermint/tendermint/types"
 )
@@ -48,6 +50,23 @@ func MustSubscribe(hub *Hub, eventType string, module string, action string) Fil
 		panic(sdkerrors.Wrapf(err, "subscription to event {type %s, module %s, action %s} failed", eventType, module, action))
 	}
 	return subscriber
+}
+
+func MustSubscribeNewBlockHeader(hub *Hub) FilteredSubscriber {
+	qString := fmt.Sprintf("%s='%s'",
+		tm.EventTypeKey, tm.EventNewBlockHeader)
+
+	subscriber, err := hub.Subscribe(query.MustParse(qString))
+	if err != nil {
+		panic(sdkerrors.Wrapf(err, "subscription to block header failed"))
+	}
+
+	return NewFilteredSubscriber(
+		subscriber,
+		func(e types.Event) bool {
+			return e.Type == minttypes.EventTypeMint
+		},
+	)
 }
 
 // Subscribe returns a filtered subscriber that only streams events of the given type, module and action
