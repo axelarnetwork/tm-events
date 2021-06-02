@@ -94,6 +94,7 @@ func Subscribe(pub Publisher, q Query) (FilteredSubscriber, error) {
 	return NewFilteredSubscriber(subscriber, q.DetailedPredicate), nil
 }
 
+// Publisher can create a subscription for the given query
 type Publisher interface {
 	Subscribe(tmpubsub.Query) (pubsub.Subscriber, error)
 }
