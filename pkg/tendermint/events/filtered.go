@@ -44,6 +44,7 @@ func (s FilteredSubscriber) Events() <-chan types.Event {
 	return s.eventChan
 }
 
+// Query represents a query used to subscribe a FilteredSubscriber to an event
 type Query struct {
 	TMQuery           *query.Query
 	DetailedPredicate func(event types.Event) bool
