@@ -47,8 +47,8 @@ func (s FilteredSubscriber) Events() <-chan types.Event {
 
 // Query represents a query used to subscribe a FilteredSubscriber to an event
 type Query struct {
-	TMQuery           *query.Query
-	DetailedPredicate func(event types.Event) bool
+	TMQuery   *query.Query
+	Predicate func(event types.Event) bool
 }
 
 // MustSubscribeTx panics if subscription to the transaction event fails
@@ -56,7 +56,7 @@ func MustSubscribeTx(pub Publisher, eventType string, module string, action stri
 	q := Query{
 		TMQuery: query.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'",
 			tm.EventTypeKey, tm.EventTx, eventType, sdk.AttributeKeyModule, module)),
-		DetailedPredicate: func(e types.Event) bool {
+		Predicate: func(e types.Event) bool {
 			return e.Type == eventType && e.Module == module && e.Action == action
 		},
 	}
@@ -69,8 +69,8 @@ func MustSubscribeTx(pub Publisher, eventType string, module string, action stri
 // MustSubscribeNewBlockHeader panics if subscription to the block header event fails
 func MustSubscribeNewBlockHeader(pub Publisher) FilteredSubscriber {
 	q := Query{
-		TMQuery:           query.MustParse(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)),
-		DetailedPredicate: func(e types.Event) bool { return e.Type == minttypes.EventTypeMint },
+		TMQuery:   query.MustParse(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)),
+		Predicate: func(e types.Event) bool { return e.Type == minttypes.EventTypeMint },
 	}
 	return MustSubscribe(pub, q,
 		func(err error) error { return sdkerrors.Wrapf(err, "subscription to block header failed") })
@@ -91,7 +91,7 @@ func Subscribe(pub Publisher, q Query) (FilteredSubscriber, error) {
 	if err != nil {
 		return FilteredSubscriber{}, err
 	}
-	return NewFilteredSubscriber(subscriber, q.DetailedPredicate), nil
+	return NewFilteredSubscriber(subscriber, q.Predicate), nil
 }
 
 // Publisher can create a subscription for the given query
