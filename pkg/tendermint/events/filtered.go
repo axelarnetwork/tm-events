@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	tmpubsub "github.com/tendermint/tendermint/libs/pubsub"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
 	tm "github.com/tendermint/tendermint/types"
 
@@ -51,7 +52,7 @@ type Query struct {
 }
 
 // MustSubscribeTx panics if subscription to the transaction event fails
-func MustSubscribeTx(hub *Hub, eventType string, module string, action string) FilteredSubscriber {
+func MustSubscribeTx(pub Publisher, eventType string, module string, action string) FilteredSubscriber {
 	q := Query{
 		TMQuery: query.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'",
 			tm.EventTypeKey, tm.EventTx, eventType, sdk.AttributeKeyModule, module)),
@@ -59,25 +60,25 @@ func MustSubscribeTx(hub *Hub, eventType string, module string, action string) F
 			return e.Type == eventType && e.Module == module && e.Action == action
 		},
 	}
-	return MustSubscribe(hub, q,
+	return MustSubscribe(pub, q,
 		func(err error) error {
 			return sdkerrors.Wrapf(err, "subscription to event {type %s, module %s, action %s} failed", eventType, module, action)
 		})
 }
 
 // MustSubscribeNewBlockHeader panics if subscription to the block header event fails
-func MustSubscribeNewBlockHeader(hub *Hub) FilteredSubscriber {
+func MustSubscribeNewBlockHeader(pub Publisher) FilteredSubscriber {
 	q := Query{
 		TMQuery:           query.MustParse(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)),
 		DetailedPredicate: func(e types.Event) bool { return e.Type == minttypes.EventTypeMint },
 	}
-	return MustSubscribe(hub, q,
+	return MustSubscribe(pub, q,
 		func(err error) error { return sdkerrors.Wrapf(err, "subscription to block header failed") })
 }
 
 // MustSubscribe panics if the subscription to the given query fails
-func MustSubscribe(hub *Hub, query Query, onFail func(error) error) FilteredSubscriber {
-	subscriber, err := Subscribe(hub, query)
+func MustSubscribe(pub Publisher, query Query, onFail func(error) error) FilteredSubscriber {
+	subscriber, err := Subscribe(pub, query)
 	if err != nil {
 		panic(onFail(err))
 	}
@@ -85,10 +86,14 @@ func MustSubscribe(hub *Hub, query Query, onFail func(error) error) FilteredSubs
 }
 
 // Subscribe returns a filtered subscriber that only streams events of the given type, module and action
-func Subscribe(hub *Hub, q Query) (FilteredSubscriber, error) {
-	subscriber, err := hub.Subscribe(q.TMQuery)
+func Subscribe(pub Publisher, q Query) (FilteredSubscriber, error) {
+	subscriber, err := pub.Subscribe(q.TMQuery)
 	if err != nil {
 		return FilteredSubscriber{}, err
 	}
 	return NewFilteredSubscriber(subscriber, q.DetailedPredicate), nil
+}
+
+type Publisher interface {
+	Subscribe(tmpubsub.Query) (pubsub.Subscriber, error)
 }
