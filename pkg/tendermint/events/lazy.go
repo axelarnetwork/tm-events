@@ -2,12 +2,24 @@ package events
 
 import (
 	"fmt"
+
 	"github.com/axelarnetwork/tm-events/pkg/tendermint/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	tmpubsub "github.com/tendermint/tendermint/libs/pubsub"
+	"github.com/tendermint/tendermint/libs/pubsub/query"
+	tm "github.com/tendermint/tendermint/types"
 )
 
 func WaitActionAsync(hub *Hub, eventType string, module string, action string) (WaitEventFunc, error) {
-	sub, err := Subscribe(hub, eventType, module, action)
+	q := Query{
+		TMQuery: query.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'",
+			tm.EventTypeKey, tm.EventTx, eventType, sdk.AttributeKeyModule, module)),
+		Predicate: func(e types.Event) bool {
+			return e.Type == eventType && e.Module == module && e.Action == action
+		},
+	}
+
+	sub, err := Subscribe(hub, q)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +40,15 @@ func WaitActionAsync(hub *Hub, eventType string, module string, action string) (
 }
 
 func NextActionAsync(hub *Hub, eventType string, module string, action string) (WaitEventFunc, FilteredSubscriber, error) {
-	sub, err := Subscribe(hub, eventType, module, action)
+	q := Query{
+		TMQuery: query.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'",
+			tm.EventTypeKey, tm.EventTx, eventType, sdk.AttributeKeyModule, module)),
+		Predicate: func(e types.Event) bool {
+			return e.Type == eventType && e.Module == module && e.Action == action
+		},
+	}
+
+	sub, err := Subscribe(hub, q)
 	if err != nil {
 		return nil, FilteredSubscriber{}, err
 	}
@@ -66,7 +86,15 @@ func WaitQueryAsync(hub *Hub, query tmpubsub.Query) (WaitEventFunc, error) {
 }
 
 func GetFilterableWaitActionAsync(hub *Hub, eventType string, module string, action string) (FilterableEventFunc, error) {
-	sub, err := Subscribe(hub, eventType, module, action)
+	q := Query{
+		TMQuery: query.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'",
+			tm.EventTypeKey, tm.EventTx, eventType, sdk.AttributeKeyModule, module)),
+		Predicate: func(e types.Event) bool {
+			return e.Type == eventType && e.Module == module && e.Action == action
+		},
+	}
+
+	sub, err := Subscribe(hub, q)
 	if err != nil {
 		return nil, err
 	}
