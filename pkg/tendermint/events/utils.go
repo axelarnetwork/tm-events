@@ -8,9 +8,9 @@ import (
 	tmpubsub "github.com/tendermint/tendermint/libs/pubsub"
 )
 
-type EventFilterFunc func(event types.Event) bool
-type WaitEventFunc func() (types.Event, error)
-type FilterableEventFunc func(filterFunc EventFilterFunc) (types.Event, error)
+type EventPredicateFunc func(event types.Event) bool
+type NextEventFunc func() (types.Event, error)
+type FilterableEventFunc func(filterFunc EventPredicateFunc) (types.Event, error)
 
 var InvalidEventErr = errors.New("invalid event")
 
