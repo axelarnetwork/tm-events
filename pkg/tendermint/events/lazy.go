@@ -70,7 +70,7 @@ func NextActionAsync(hub *Hub, eventType string, module string, action string) (
 
 // NextFilteredEventAsync subscribes to events by eventType and module, filtering for results which match the predicate.
 // It returns a function which lazy loads the next event from the subscription every time it is called.
-func NextFilteredEventAsync(hub *Hub, eventType string, module string, predicate func(event types.Event) bool) (NextEventFunc, FilteredSubscriber, error) {
+func NextFilteredEventAsync(hub *Hub, eventType string, module string, predicate EventPredicateFunc) (NextEventFunc, FilteredSubscriber, error) {
 	q := Query{
 		TMQuery: query.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'",
 			tm.EventTypeKey, tm.EventTx, eventType, sdk.AttributeKeyModule, module)),

@@ -10,7 +10,7 @@ import (
 
 type EventPredicateFunc func(event types.Event) bool
 type NextEventFunc func() (types.Event, error)
-type FilterableEventFunc func(filterFunc EventPredicateFunc) (types.Event, error)
+type FilteredNextEventFunc func(filter EventPredicateFunc) (types.Event, error)
 
 var InvalidEventErr = errors.New("invalid event")
 
