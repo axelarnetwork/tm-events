@@ -180,6 +180,7 @@ func ConsumeFilteredSubscriptionEvents(sub FilteredSubscriber, evChan chan types
 	}
 }
 
+// MatchAttributesPredicate returns an event predicate which evaluates to false if an event does not contain the attributes with the exact values specified in expectedAttributes.
 func MatchAttributesPredicate(expectedAttributes map[string]string) EventPredicateFunc {
 	mask := make(map[string]bool)
 
@@ -196,6 +197,24 @@ func MatchAttributesPredicate(expectedAttributes map[string]string) EventPredica
 		}
 
 		for key, _ := range expectedAttributes {
+			if mask[key] == false {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+// HasAttributesPredicate returns an event predicate which evaluates to false if an event does not contain the attribute keys listed in expectedAttributes.
+func HasAttributesPredicate(expectedAttributes []string) EventPredicateFunc {
+	mask := make(map[string]bool)
+
+	return func(event types.Event) bool {
+		for _, attribute := range event.Attributes {
+			mask[attribute.Key] = true
+		}
+
+		for _, key := range expectedAttributes {
 			if mask[key] == false {
 				return false
 			}
