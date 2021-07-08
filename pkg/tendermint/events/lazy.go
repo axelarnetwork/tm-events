@@ -96,6 +96,8 @@ func NextFilteredEventAsync(hub *Hub, eventType string, module string, predicate
 	}, sub, nil
 }
 
+// WaitActionAsync subscribes to events using an arbitrary tendermint query.
+// It returns a function which lazy loads the next event from the subscription then closes the subscription when called.
 func WaitQueryAsync(hub *Hub, query tmpubsub.Query) (NextEventFunc, error) {
 	// todo: test to confirm events are caught before NextEventFunc is called (lazy loading functioning correctly)
 	sub, err := hub.Subscribe(query)
@@ -116,43 +118,7 @@ func WaitQueryAsync(hub *Hub, query tmpubsub.Query) (NextEventFunc, error) {
 	}, nil
 }
 
-func GetFilterableWaitActionAsync(hub *Hub, eventType string, module string, action string) (FilterableEventFunc, error) {
-	q := Query{
-		TMQuery: query.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'",
-			tm.EventTypeKey, tm.EventTx, eventType, sdk.AttributeKeyModule, module)),
-		Predicate: func(e types.Event) bool {
-			return e.Type == eventType && e.Module == module && e.Action == action
-		},
-	}
-
-	sub, err := Subscribe(hub, q)
-	if err != nil {
-		return nil, err
-	}
-
-	evChan := make(chan types.Event, 1)
-	errChan := make(chan error, 1)
-
-	go ConsumeFilteredSubscriptionEvents(sub, evChan, errChan)
-
-	return func(filter EventPredicateFunc) (ev types.Event, err error) {
-		fmt.Printf("Waiting for action '%s'... ", action)
-		defer sub.Close()
-
-		for {
-			ev = <-evChan
-			err = <-errChan
-			if err != nil {
-				return
-			}
-
-			if filter(ev) {
-				return
-			}
-		}
-	}, nil
-}
-
+// WaitFilteredEvent lazy loads events until the filter predicate evaluates to true.
 func WaitFilteredEvent(next NextEventFunc, filter EventPredicateFunc) (types.Event, error) {
 	for {
 		ev, err := next()
@@ -166,6 +132,8 @@ func WaitFilteredEvent(next NextEventFunc, filter EventPredicateFunc) (types.Eve
 	}
 }
 
+// ConsumeFilteredSubscriptionEvents consumes events from a filter subscription, writing them to the event and error channels until the subscription is closed.
+// It is intended to run in its own goroutine.
 func ConsumeFilteredSubscriptionEvents(sub FilteredSubscriber, evChan chan types.Event, errChan chan error) {
 	for {
 		select {
