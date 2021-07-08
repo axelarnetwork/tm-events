@@ -153,9 +153,9 @@ func GetFilterableWaitActionAsync(hub *Hub, eventType string, module string, act
 	}, nil
 }
 
-func WaitForPredicateMatch(wait NextEventFunc, filter EventPredicateFunc) (types.Event, error) {
+func WaitFilteredEvent(next NextEventFunc, filter EventPredicateFunc) (types.Event, error) {
 	for {
-		ev, err := wait()
+		ev, err := next()
 		if err != nil {
 			return ev, err
 		}
