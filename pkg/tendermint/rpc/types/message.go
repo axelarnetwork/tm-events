@@ -5,7 +5,7 @@ import "encoding/json"
 type Error struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
-	Data    string `jsons:"data"`
+	Data    string `json"data"`
 }
 
 type Result struct {
