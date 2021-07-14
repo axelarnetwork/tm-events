@@ -84,7 +84,7 @@ func NextFilteredEventAsync(hub *Hub, eventType string, module string, predicate
 		return nil, FilteredSubscriber{}, err
 	}
 
-	evChan := make(chan types.Event, 1)
+	evChan := make(chan types.Event, 1000)
 	errChan := make(chan error, 1)
 
 	go ConsumeFilteredSubscriptionEvents(sub, evChan, errChan)
