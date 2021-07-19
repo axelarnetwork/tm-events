@@ -5,11 +5,11 @@ import "encoding/json"
 type Error struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
-	Data    string `json"data"`
+	Data    string `json:"data"`
 }
 
 type Result struct {
-	Query  string          `json:query`
+	Query  string          `json:"query"`
 	Data   json.RawMessage `json:"data"`
 	Events json.RawMessage `json:"cmd"`
 }

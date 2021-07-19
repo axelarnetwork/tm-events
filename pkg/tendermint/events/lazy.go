@@ -9,6 +9,8 @@ import (
 	tm "github.com/tendermint/tendermint/types"
 )
 
+const LazyEventBufferSize = 1000
+
 // WaitActionAsync subscribes to events by eventType and module, filtering for results which have the provided action value.
 // It returns a function which lazy loads the next event from the subscription then closes the subscription when called.
 func WaitActionAsync(hub *Hub, eventType string, module string, action string) (NextEventFunc, error) {
@@ -25,7 +27,7 @@ func WaitActionAsync(hub *Hub, eventType string, module string, action string) (
 		return nil, err
 	}
 
-	evChan := make(chan types.Event, 1)
+	evChan := make(chan types.Event, LazyEventBufferSize)
 	errChan := make(chan error, 1)
 
 	go ConsumeFilteredSubscriptionEvents(sub, evChan, errChan)
@@ -56,7 +58,7 @@ func NextActionAsync(hub *Hub, eventType string, module string, action string) (
 		return nil, FilteredSubscriber{}, err
 	}
 
-	evChan := make(chan types.Event, 1)
+	evChan := make(chan types.Event, LazyEventBufferSize)
 	errChan := make(chan error, 1)
 
 	go ConsumeFilteredSubscriptionEvents(sub, evChan, errChan)
@@ -84,7 +86,7 @@ func NextFilteredEventAsync(hub *Hub, eventType string, module string, predicate
 		return nil, FilteredSubscriber{}, err
 	}
 
-	evChan := make(chan types.Event, 1000)
+	evChan := make(chan types.Event, LazyEventBufferSize)
 	errChan := make(chan error, 1)
 
 	go ConsumeFilteredSubscriptionEvents(sub, evChan, errChan)
@@ -99,13 +101,13 @@ func NextFilteredEventAsync(hub *Hub, eventType string, module string, predicate
 // WaitActionAsync subscribes to events using an arbitrary tendermint query.
 // It returns a function which lazy loads the next event from the subscription then closes the subscription when called.
 func WaitQueryAsync(hub *Hub, query tmpubsub.Query) (NextEventFunc, error) {
-	// todo: test to confirm events are caught before NextEventFunc is called (lazy loading functioning correctly)
+	// todo: test to confirm events are caught and buffered before NextEventFunc is called (lazy loading functioning correctly)
 	sub, err := hub.Subscribe(query)
 	if err != nil {
 		return nil, err
 	}
 
-	evChan := make(chan types.Event, 1)
+	evChan := make(chan types.Event, LazyEventBufferSize)
 	errChan := make(chan error, 1)
 
 	go consumeSubscriptionEvents(sub, evChan, errChan)
