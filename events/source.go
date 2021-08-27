@@ -90,6 +90,7 @@ func newEventBlockNotifier(client SubscriptionClient, logger log.Logger, options
 		timeout:           opts.timeout,
 		retries:           opts.retries,
 		keepAliveInterval: opts.keepAlive,
+		done:              make(chan struct{}),
 	}
 }
 
