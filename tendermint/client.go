@@ -4,30 +4,20 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/types/errors"
 	tmlog "github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/rpc/client"
 	tmClient "github.com/tendermint/tendermint/rpc/client/http"
 )
 
-type RPCClient struct {
-	*tmClient.HTTP
-	logger tmlog.Logger
-}
-
-const (
-	DefaultWSEndpoint = "/websocket"
-	DefaultAddress    = "http://localhost:26657"
-)
-
-func NewClient(address string, endpoint string, logger tmlog.Logger) (*RPCClient, error) {
-	errDescr := "failed to create tendermint client"
+// StartClient connects a client to the given tendermint endpoint
+func StartClient(address string, endpoint string, logger tmlog.Logger) (client.Client, error) {
 	if !validEndpoint(endpoint) {
-		return nil, errors.Wrap(fmt.Errorf("invalid endpoint"), errDescr)
+		return nil, fmt.Errorf("invalid endpoint")
 	}
 
 	c, err := tmClient.New(address, endpoint)
 	if err != nil {
-		return nil, errors.Wrap(err, errDescr)
+		return nil, err
 	}
 
 	err = c.Start()
@@ -36,7 +26,7 @@ func NewClient(address string, endpoint string, logger tmlog.Logger) (*RPCClient
 	}
 	logger.Info("Connected tendermint client at " + address)
 
-	return &RPCClient{c, logger}, nil
+	return c, nil
 }
 
 func validEndpoint(ep string) bool {

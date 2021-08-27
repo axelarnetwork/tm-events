@@ -1,17 +1,10 @@
-PACKAGES=$(shell go list ./... | grep -v '/simulation')
-VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
-COMMIT := $(shell git log -1 --format='%H')
+.PHONY: build
+build: deps
+	go build -o ./bin/tmrpc -mod=readonly ./cmd
 
-.PHONY: all
-all: tmrpc
-
-.PHONY: tmrpc
-tmrpc: deps
-	go build -o ./bin/tmrpc -mod=readonly ./cmd/tmrpc
-
-.PHONY: install-tmrpc
-install-tmrpc: deps
-	go install ./cmd/tmrpc
+.PHONY: install
+install: deps
+	go install ./cmd
 
 go.sum: go.mod
 	@echo "--> Ensure dependencies have not been modified"
@@ -20,7 +13,7 @@ go.sum: go.mod
 # Uncomment when you have some tests
 # test:
 # 	@go test -mod=readonly $(PACKAGES)
-.PHONY:
+.PHONY: lint
 	# look into .golangci.yml for enabling / disabling linters
 lint:
 	@echo "--> Running linter"
@@ -32,9 +25,21 @@ lint:
 generate: prereqs
 	go generate -x ./...
 
+.PHONY: prereqs
+prereqs:
+ifeq (which moq,)
+	go get -u github.com/matryer/moq
+endif
+ifeq (which mdformat,)
+	pip3 install mdformat
+endif
+ifeq (which protoc,)
+	@echo "Please install protoc for grpc (https://grpc.io/docs/languages/go/quickstart/)"
+endif
+
 # Prepare go deps, as well as zeromq
 .PHONY: deps
-deps:
+deps: go.sum
 	@echo "--> Ensure build dependencies are present in the system"
 	go mod tidy
 	@echo 'checking zeromq dependencies'; sh -c 'pkg-config --modversion libzmq'

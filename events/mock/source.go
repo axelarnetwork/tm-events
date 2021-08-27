@@ -23,6 +23,9 @@ var _ events.BlockSource = &BlockSourceMock{}
 // 			BlockResultsFunc: func(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error) {
 // 				panic("mock out the BlockResults method")
 // 			},
+// 			DoneFunc: func() <-chan struct{} {
+// 				panic("mock out the Done method")
+// 			},
 // 		}
 //
 // 		// use mockedBlockSource in code that requires events.BlockSource
@@ -33,6 +36,9 @@ type BlockSourceMock struct {
 	// BlockResultsFunc mocks the BlockResults method.
 	BlockResultsFunc func(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error)
 
+	// DoneFunc mocks the Done method.
+	DoneFunc func() <-chan struct{}
+
 	// calls tracks calls to the methods.
 	calls struct {
 		// BlockResults holds details about calls to the BlockResults method.
@@ -40,8 +46,12 @@ type BlockSourceMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 		}
+		// Done holds details about calls to the Done method.
+		Done []struct {
+		}
 	}
 	lockBlockResults sync.RWMutex
+	lockDone         sync.RWMutex
 }
 
 // BlockResults calls BlockResultsFunc.
@@ -72,6 +82,32 @@ func (mock *BlockSourceMock) BlockResultsCalls() []struct {
 	mock.lockBlockResults.RLock()
 	calls = mock.calls.BlockResults
 	mock.lockBlockResults.RUnlock()
+	return calls
+}
+
+// Done calls DoneFunc.
+func (mock *BlockSourceMock) Done() <-chan struct{} {
+	if mock.DoneFunc == nil {
+		panic("BlockSourceMock.DoneFunc: method is nil but BlockSource.Done was just called")
+	}
+	callInfo := struct {
+	}{}
+	mock.lockDone.Lock()
+	mock.calls.Done = append(mock.calls.Done, callInfo)
+	mock.lockDone.Unlock()
+	return mock.DoneFunc()
+}
+
+// DoneCalls gets all the calls that were made to Done.
+// Check the length with:
+//     len(mockedBlockSource.DoneCalls())
+func (mock *BlockSourceMock) DoneCalls() []struct {
+} {
+	var calls []struct {
+	}
+	mock.lockDone.RLock()
+	calls = mock.calls.Done
+	mock.lockDone.RUnlock()
 	return calls
 }
 
@@ -340,6 +376,9 @@ var _ events.BlockNotifier = &BlockNotifierMock{}
 // 			BlockHeightsFunc: func(ctx context.Context) (<-chan int64, <-chan error) {
 // 				panic("mock out the BlockHeights method")
 // 			},
+// 			DoneFunc: func() <-chan struct{} {
+// 				panic("mock out the Done method")
+// 			},
 // 		}
 //
 // 		// use mockedBlockNotifier in code that requires events.BlockNotifier
@@ -350,6 +389,9 @@ type BlockNotifierMock struct {
 	// BlockHeightsFunc mocks the BlockHeights method.
 	BlockHeightsFunc func(ctx context.Context) (<-chan int64, <-chan error)
 
+	// DoneFunc mocks the Done method.
+	DoneFunc func() <-chan struct{}
+
 	// calls tracks calls to the methods.
 	calls struct {
 		// BlockHeights holds details about calls to the BlockHeights method.
@@ -357,8 +399,12 @@ type BlockNotifierMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 		}
+		// Done holds details about calls to the Done method.
+		Done []struct {
+		}
 	}
 	lockBlockHeights sync.RWMutex
+	lockDone         sync.RWMutex
 }
 
 // BlockHeights calls BlockHeightsFunc.
@@ -389,5 +435,31 @@ func (mock *BlockNotifierMock) BlockHeightsCalls() []struct {
 	mock.lockBlockHeights.RLock()
 	calls = mock.calls.BlockHeights
 	mock.lockBlockHeights.RUnlock()
+	return calls
+}
+
+// Done calls DoneFunc.
+func (mock *BlockNotifierMock) Done() <-chan struct{} {
+	if mock.DoneFunc == nil {
+		panic("BlockNotifierMock.DoneFunc: method is nil but BlockNotifier.Done was just called")
+	}
+	callInfo := struct {
+	}{}
+	mock.lockDone.Lock()
+	mock.calls.Done = append(mock.calls.Done, callInfo)
+	mock.lockDone.Unlock()
+	return mock.DoneFunc()
+}
+
+// DoneCalls gets all the calls that were made to Done.
+// Check the length with:
+//     len(mockedBlockNotifier.DoneCalls())
+func (mock *BlockNotifierMock) DoneCalls() []struct {
+} {
+	var calls []struct {
+	}
+	mock.lockDone.RLock()
+	calls = mock.calls.Done
+	mock.lockDone.RUnlock()
 	return calls
 }

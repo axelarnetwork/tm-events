@@ -11,19 +11,19 @@ import (
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tm "github.com/tendermint/tendermint/types"
 
+	"github.com/axelarnetwork/utils/test"
+	"github.com/axelarnetwork/utils/test/rand"
+
 	"github.com/axelarnetwork/tm-events/events"
 	"github.com/axelarnetwork/tm-events/events/mock"
 	"github.com/axelarnetwork/tm-events/pubsub"
-	tmEvents "github.com/axelarnetwork/tm-events/tendermint/types"
-
-	"github.com/axelarnetwork/utils/test"
-	"github.com/axelarnetwork/utils/test/rand"
+	pubsubMock "github.com/axelarnetwork/tm-events/pubsub/mock"
 )
 
 func TestMgr_FetchEvents(t *testing.T) {
 
 	t.Run("WHEN the event source throws an error THEN the bus returns error", func(t *testing.T) {
-		bus := func() pubsub.Bus { return &mock.BusMock{} }
+		bus := func() pubsub.Bus { return &pubsubMock.BusMock{} }
 		errors := make(chan error, 1)
 		source := &mock.BlockSourceMock{
 			BlockResultsFunc: func(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error) {
@@ -41,9 +41,9 @@ func TestMgr_FetchEvents(t *testing.T) {
 	})
 
 	t.Run("WHEN the block source block result channel closes THEN the bus shuts down", func(t *testing.T) {
-		busMock := &mock.BusMock{
+		busMock := &pubsubMock.BusMock{
 			SubscribeFunc: func() (pubsub.Subscriber, error) {
-				return &mock.SubscriberMock{}, nil
+				return &pubsubMock.SubscriberMock{}, nil
 			},
 			CloseFunc: func() {},
 		}
@@ -86,13 +86,13 @@ func TestMgr_Subscribe(t *testing.T) {
 
 		actualEvents := make(chan pubsub.Event, 100000)
 		busFactory := func() pubsub.Bus {
-			return &mock.BusMock{
+			return &pubsubMock.BusMock{
 				PublishFunc: func(event pubsub.Event) error {
 					actualEvents <- event
 					return nil
 				},
 				SubscribeFunc: func() (pubsub.Subscriber, error) {
-					return &mock.SubscriberMock{
+					return &pubsubMock.SubscriberMock{
 						EventsFunc: func() <-chan pubsub.Event { return actualEvents },
 					}, nil
 				},
@@ -146,8 +146,8 @@ func TestMgr_Subscribe(t *testing.T) {
 			case <-timeout.Done():
 				assert.FailNow(t, "timed out")
 			case event := <-sub.Events():
-				assert.IsType(t, tmEvents.Event{}, event)
-				actualHeight := event.(tmEvents.Event).Height
+				assert.IsType(t, events.Event{}, event)
+				actualHeight := event.(events.Event).Height
 				if actualHeight == 0 {
 					assert.Equal(t, expectedEventCount, eventCount)
 					return
@@ -204,8 +204,8 @@ func TestMgr_Subscribe(t *testing.T) {
 			case <-timeout.Done():
 				assert.FailNow(t, "timed out")
 			case event := <-sub.Events():
-				assert.IsType(t, tmEvents.Event{}, event)
-				actualHeight := event.(tmEvents.Event).Height
+				assert.IsType(t, events.Event{}, event)
+				actualHeight := event.(events.Event).Height
 				if actualHeight == 0 {
 					assert.Equal(t, expectedEventCount, eventCount)
 					return

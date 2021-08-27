@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"sync"
 
+	"github.com/axelarnetwork/utils/jobs"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/spf13/cobra"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
@@ -12,8 +16,12 @@ import (
 	"github.com/axelarnetwork/tm-events/events"
 	"github.com/axelarnetwork/tm-events/pubsub"
 	"github.com/axelarnetwork/tm-events/tendermint"
-	events2 "github.com/axelarnetwork/tm-events/tendermint/events"
-	"github.com/axelarnetwork/tm-events/tendermint/types"
+)
+
+// default flag values
+const (
+	DefaultWSEndpoint = "/websocket"
+	DefaultAddress    = "http://localhost:26657"
 )
 
 func main() {
@@ -22,32 +30,31 @@ func main() {
 		endpoint string
 		eventBus *events.Bus
 	)
-	logger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout))
+	logger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("process", "tmrpc")
 
 	cmd := cobra.Command{
 		Use:              "tmrpc",
 		Short:            "Event listener",
 		TraverseChildren: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			cl, err := tendermint.NewClient(rpcURL, endpoint, logger)
+			cl, err := tendermint.StartClient(rpcURL, endpoint, logger)
 			if err != nil {
-				return nil
+				return sdkerrors.Wrap(err, "failed to create tendermint client")
 			}
 
-			blockSource := events.NewBlockSource(cl, events.NewBlockNotifier(events.NewBlockClient(cl), logger))
+			notifier := events.NewBlockNotifier(events.NewBlockClient(cl), logger)
+			blockSource := events.NewBlockSource(cl, notifier)
 			eventBus = events.NewEventBus(blockSource, pubsub.NewBus, logger)
 			return nil
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&rpcURL, "address", tendermint.DefaultAddress, "tendermint RPC address")
-	cmd.PersistentFlags().StringVar(&endpoint, "endpoint", tendermint.DefaultWSEndpoint, "websocket endpoint")
+	cmd.PersistentFlags().StringVar(&rpcURL, "address", DefaultAddress, "tendermint RPC address")
+	cmd.PersistentFlags().StringVar(&endpoint, "endpoint", DefaultWSEndpoint, "websocket endpoint")
 
 	cmd.AddCommand(
-		CmdQuery(eventBus),
-		CmdWaitQuery(eventBus, logger),
-		CmdWaitTxEvent(eventBus, logger),
-		CmdWaitAction(eventBus, logger),
+		CmdWaitEvent(&eventBus, logger),
+		CmdWaitQuery(&eventBus, logger),
 	)
 
 	if err := cmd.Execute(); err != nil {
@@ -56,114 +63,97 @@ func main() {
 	}
 }
 
-func CmdWaitAction(eventBus *events.Bus, logger tmlog.Logger) *cobra.Command {
+// CmdWaitEvent returns a cli command to wait for a specific event
+func CmdWaitEvent(busPtr **events.Bus, logger tmlog.Logger) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "wait-action <event type> <module> <action>",
+		Use:   "wait-event <event type> <module> [action]",
 		Short: "Wait for the next matching event",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.RangeArgs(2, 3),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			eventBus := *busPtr
+			shutdownBus := startFetchingEvents(eventBus, logger)
+
 			eventType := args[0]
 			module := args[1]
-			action := args[2]
+			var logKeyVals []interface{}
+			logKeyVals = append(logKeyVals, "module", module)
+			logKeyVals = append(logKeyVals, "eventType", eventType)
 
-			wait, err := events2.WaitActionAsync(eventBus, eventType, module, action, logger)
-			if err != nil {
-				return err
+			var attributes []sdk.Attribute
+			if len(args) == 3 {
+				action := args[2]
+				attributes = append(attributes, sdk.Attribute{Key: sdk.AttributeKeyAction, Value: action})
+				logKeyVals = append(logKeyVals, "action", action)
 			}
 
-			ev, err := wait()
-			if err != nil {
-				return err
-			}
+			logger.Debug("waiting for event", logKeyVals...)
+			sub := events.MustSubscribeWithAttributes(eventBus, eventType, module, attributes...)
+			once := sync.Once{}
+			job := events.Consume(sub, func(e events.Event) error {
+				once.Do(func() {
+					logger.Debug(fmt.Sprintf("found event %v", e), logKeyVals...)
+					shutdownBus()
+					<-eventBus.Done()
+				})
+				return nil
+			})
+			mgr := jobs.NewMgr(func(err error) { logger.Error(err.Error()) })
+			mgr.AddJob(job)
 
-			reportEvent(ev)
+			mgr.Wait()
+
 			return nil
 		},
 	}
 	return cmd
 }
 
-func CmdWaitQuery(eventBus *events.Bus, logger tmlog.Logger) *cobra.Command {
+// CmdWaitQuery returns a cli command to wait for the first event matching the given query
+func CmdWaitQuery(busPtr **events.Bus, logger tmlog.Logger) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "wait-query <query string>",
 		Short: "Wait for the next event matching the query",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			wait, err := events2.WaitQueryAsync(eventBus, query.MustParse(args[0]), logger)
-			if err != nil {
-				return err
-			}
+			eventBus := *busPtr
+			shutdownBus := startFetchingEvents(eventBus, logger)
 
-			ev, err := wait()
-			if err != nil {
-				return err
-			}
+			q := events.Query{TMQuery: query.MustParse(args[0]), Predicate: func(events.Event) bool { return true }}
+			logger.Debug(fmt.Sprintf("waiting for event matching query '%s'", q.TMQuery.String()))
+			sub := events.MustSubscribe(eventBus, q, func(err error) error { return sdkerrors.Wrap(err, "query subscription failed") })
+			once := sync.Once{}
+			job := events.Consume(sub, func(e events.Event) error {
+				once.Do(func() {
+					logger.Debug(fmt.Sprintf("found event matching query '%s': %v", q.TMQuery.String(), e))
+					shutdownBus()
+					<-eventBus.Done()
+				})
+				return nil
+			})
 
-			reportEvent(ev)
+			mgr := jobs.NewMgr(func(err error) { logger.Error(err.Error()) })
+			mgr.AddJob(job)
+
+			mgr.Wait()
+
 			return nil
 		},
 	}
 	return cmd
 }
 
-func CmdWaitTxEvent(eventBus *events.Bus, logger tmlog.Logger) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "wait-tx-event <event type> <module> [action]",
-		Short: "Wait for the next matching tx event",
-		Args:  cobra.RangeArgs(2, 3),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			eventType := args[0]
-			module := args[1]
+func startFetchingEvents(eventBus *events.Bus, logger tmlog.Logger) context.CancelFunc {
+	ctx, shutdownBus := context.WithCancel(context.Background())
+	errs := eventBus.FetchEvents(ctx)
 
-			params := []types.Param{{Key: sdk.AttributeKeyModule, Value: module}}
-
-			if len(args) == 3 {
-				action := args[2]
-				params = append(params, types.Param{Key: sdk.AttributeKeyAction, Value: action})
-			}
-
-			wait, err := events2.WaitQueryAsync(eventBus, types.MakeTxEventQuery(eventType, params...), logger)
-			if err != nil {
-				return err
-			}
-
-			ev, err := wait()
-			if err != nil {
-				return err
-			}
-
-			reportEvent(ev)
-			return nil
-		},
-	}
-	return cmd
-}
-
-func CmdQuery(eventBus *events.Bus) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "query <query string>",
-		Short: "Print the next event matching the query",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			catch, err := events2.ProcessQuery(eventBus, query.MustParse(args[0]), reportEventVerbose)
-			if err != nil {
-				return err
-			}
-
-			return catch()
-		},
-	}
-	return cmd
-}
-
-func reportEventVerbose(event types.Event) {
-	reportEvent(event)
-	fmt.Printf("%+v\n", event)
-}
-
-func reportEvent(event types.Event) {
-	fmt.Printf("\tmodule: %+v\n", event.Module)
-	fmt.Printf("\taction: %+v\n", event.Action)
-	fmt.Printf("\ttype: %+v\n", event.Type)
-	fmt.Printf("\tattributes: %+v\n", event.Attributes)
+	go func() {
+		select {
+		case err := <-errs:
+			logger.Error(err.Error())
+			shutdownBus()
+		case <-ctx.Done():
+			return
+		}
+	}()
+	return shutdownBus
 }

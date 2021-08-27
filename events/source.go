@@ -17,6 +17,7 @@ import (
 
 //go:generate moq -pkg mock -out ./mock/source.go . BlockSource BlockClient BlockResultClient BlockNotifier
 
+// WebsocketQueueSize is set to the maximum length to prevent Tendermint from closing the connection due to congestion
 const WebsocketQueueSize = 32768
 
 type dialOptions struct {
@@ -63,6 +64,7 @@ func KeepAlive(interval time.Duration) DialOption {
 // BlockNotifier notifies the caller of new blocks
 type BlockNotifier interface {
 	BlockHeights(ctx context.Context) (<-chan int64, <-chan error)
+	Done() <-chan struct{}
 }
 
 type eventblockNotifier struct {
@@ -72,6 +74,7 @@ type eventblockNotifier struct {
 	timeout           time.Duration
 	retries           int
 	keepAliveInterval time.Duration
+	done              chan struct{}
 }
 
 func newEventBlockNotifier(client SubscriptionClient, logger log.Logger, options ...DialOption) *eventblockNotifier {
@@ -97,6 +100,7 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 	var keepAlive context.Context
 	var keepAliveCancel context.CancelFunc = func() {}
 	go func() {
+		defer close(b.done)
 		defer func() { keepAliveCancel() }() // the cancel function gets reassigned, so call it indirectly
 		defer close(blocks)
 		defer b.logger.Info("stopped listening to events")
@@ -171,6 +175,13 @@ func (b *eventblockNotifier) tryUnsubscribe(ctx context.Context, timeout time.Du
 		return
 	}
 	b.logger.Debug(fmt.Sprintf("unsubscribed from query \"%s\"", b.query))
+}
+
+func (b *eventblockNotifier) Done() chan struct{} {
+	<-b.done
+	done := make(chan struct{})
+	close(done)
+	return done
 }
 
 type queryBlockNotifier struct {
@@ -265,6 +276,8 @@ type BlockClient interface {
 	SubscriptionClient
 }
 
+var _ BlockNotifier = &Notifier{}
+
 // Notifier can notify a consumer about new blocks
 type Notifier struct {
 	logger         log.Logger
@@ -273,6 +286,11 @@ type Notifier struct {
 	running        context.Context
 	shutdown       context.CancelFunc
 	start          int64
+}
+
+// Done returns a channel that is closed when the Notifier has completed cleanup
+func (b Notifier) Done() <-chan struct{} {
+	return b.eventsNotifier.Done()
 }
 
 // NewBlockNotifier returns a new BlockNotifier instance
@@ -288,6 +306,7 @@ func NewBlockNotifier(client BlockClient, logger log.Logger, options ...DialOpti
 		start = 1
 	}
 
+	logger = logger.With("listener", "blocks")
 	return &Notifier{
 		start:          start,
 		logger:         logger,
@@ -381,6 +400,7 @@ func (b Notifier) pipeLatestBlock(fromQuery <-chan int64, fromEvents <-chan int6
 // BlockSource returns all block results sequentially
 type BlockSource interface {
 	BlockResults(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error)
+	Done() <-chan struct{}
 }
 
 type blockSource struct {
@@ -408,6 +428,10 @@ func NewBlockSource(client BlockResultClient, notifier BlockNotifier, queryTimeo
 	}
 
 	return b
+}
+
+func (b *blockSource) Done() <-chan struct{} {
+	return b.notifier.Done()
 }
 
 // BlockResults returns a channel of block results. Blocks are pushed into the channel sequentially as they are discovered

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
@@ -14,7 +13,6 @@ import (
 	tm "github.com/tendermint/tendermint/types"
 
 	"github.com/axelarnetwork/tm-events/pubsub"
-	"github.com/axelarnetwork/tm-events/tendermint/types"
 )
 
 // Bus represents an object that receives blocks from a tendermint server and manages queries for events in those blocks
@@ -45,7 +43,7 @@ func NewEventBus(source BlockSource, pubsubFactory func() pubsub.Bus, logger log
 			pubsub.Bus
 		}),
 		createBus: pubsubFactory,
-		logger:    logger.With("listener", "events"),
+		logger:    logger.With("publisher", "events"),
 		done:      make(chan struct{}),
 	}
 
@@ -138,7 +136,7 @@ func (m *Bus) publishEvents(block *coretypes.ResultBlockResults) error {
 
 	// beginBlock and endBlock events are published together as block events
 	blockEvents := append(block.BeginBlockEvents, block.EndBlockEvents...)
-	eventMap := mapifyEvents(blockEvents)
+	eventMap := Flatten(blockEvents)
 	eventMap[tm.EventTypeKey] = append(eventMap[tm.EventTypeKey], tm.EventNewBlockHeader, tm.EventNewBlock)
 	err := m.publishMatches(blockEvents, eventMap, block.Height)
 	if err != nil {
@@ -146,7 +144,7 @@ func (m *Bus) publishEvents(block *coretypes.ResultBlockResults) error {
 	}
 
 	for _, txRes := range block.TxsResults {
-		eventMap = mapifyEvents(txRes.Events)
+		eventMap = Flatten(txRes.Events)
 		eventMap[tm.EventTypeKey] = append(eventMap[tm.EventTypeKey], tm.EventTx)
 		err := m.publishMatches(txRes.Events, eventMap, block.Height)
 		if err != nil {
@@ -170,7 +168,7 @@ func (m *Bus) publishMatches(abciEvents []abci.Event, eventMap map[string][]stri
 		}
 
 		for _, abciEvent := range abciEvents {
-			event, err := types.ParseEvent(sdk.StringifyEvent(abciEvent))
+			event, err := Parse(abciEvent)
 			if err != nil {
 				return sdkerrors.Wrap(err, fmt.Sprintf("could not parse event %v", abciEvent))
 			}
@@ -182,23 +180,4 @@ func (m *Bus) publishMatches(abciEvents []abci.Event, eventMap map[string][]stri
 		}
 	}
 	return nil
-}
-
-func mapifyEvents(events []abci.Event) map[string][]string {
-	result := make(map[string][]string)
-	for _, event := range events {
-		if len(event.Type) == 0 {
-			return nil
-		}
-
-		for _, attr := range event.Attributes {
-			if len(attr.Key) == 0 {
-				continue
-			}
-
-			compositeTag := fmt.Sprintf("%s.%s", event.Type, string(attr.Key))
-			result[compositeTag] = append(result[compositeTag], string(attr.Value))
-		}
-	}
-	return result
 }
