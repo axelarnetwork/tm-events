@@ -29,6 +29,11 @@ func TestBus_FetchEvents(t *testing.T) {
 			BlockResultsFunc: func(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error) {
 				return make(chan *coretypes.ResultBlockResults), errors
 			},
+			DoneFunc: func() <-chan struct{} {
+				done := make(chan struct{})
+				close(done)
+				return done
+			},
 		}
 		bus := events.NewEventBus(source, busFactory, log.TestingLogger())
 
@@ -52,6 +57,11 @@ func TestBus_FetchEvents(t *testing.T) {
 		source := &mock.BlockSourceMock{
 			BlockResultsFunc: func(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error) {
 				return results, nil
+			},
+			DoneFunc: func() <-chan struct{} {
+				done := make(chan struct{})
+				close(done)
+				return done
 			},
 		}
 		bus := events.NewEventBus(source, busFactory, log.TestingLogger())
