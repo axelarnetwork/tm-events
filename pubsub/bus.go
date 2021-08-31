@@ -3,8 +3,10 @@ package pubsub
 import (
 	"errors"
 
-	lifecycle "github.com/boz/go-lifecycle"
+	"github.com/boz/go-lifecycle"
 )
+
+//go:generate moq -pkg mock -out ./mock/bus.go  . Bus Subscriber
 
 // ErrNotRunning is the error with message "not running"
 var ErrNotRunning = errors.New("not running")
