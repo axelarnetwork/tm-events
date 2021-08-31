@@ -28,14 +28,12 @@ type Bus struct {
 	createBus func() pubsub.Bus
 	logger    log.Logger
 
-	running  context.Context
-	shutdown context.CancelFunc
-	done     chan struct{}
+	done chan struct{}
 }
 
 // NewEventBus returns a new event bus instance
 func NewEventBus(source BlockSource, pubsubFactory func() pubsub.Bus, logger log.Logger) *Bus {
-	mgr := &Bus{
+	bus := &Bus{
 		subscribeLock: sync.RWMutex{},
 		source:        source,
 		subscriptions: make(map[string]struct {
@@ -47,7 +45,7 @@ func NewEventBus(source BlockSource, pubsubFactory func() pubsub.Bus, logger log
 		done:      make(chan struct{}),
 	}
 
-	return mgr
+	return bus
 }
 
 // FetchEvents asynchronously queries the blockchain for new blocks and publishes all txs events in those blocks to the event manager's subscribers.
@@ -56,37 +54,25 @@ func (m *Bus) FetchEvents(ctx context.Context) <-chan error {
 	// either the block source or the event manager could push an error at the same time, so we need to make sure we don't block
 	errChan := make(chan error, 2)
 
-	m.running, m.shutdown = context.WithCancel(ctx)
-	blockResults, blockErrs := m.source.BlockResults(m.running)
+	ctx, shutdown := context.WithCancel(ctx)
+	blockResults, blockErrs := m.source.BlockResults(ctx)
 
 	go func() {
-		defer m.shutdown()
-		select {
-		case err := <-blockErrs:
-			errChan <- err
-			return
-		case <-m.running.Done():
-			return
-		}
-	}()
-
-	go func() {
-		defer m.shutdown()
 		defer m.logger.Info("shutting down")
 
 		for {
 			select {
 			case block, ok := <-blockResults:
 				if !ok {
-					m.shutdown()
-					continue
-				}
-				if err := m.publishEvents(block); err != nil {
+					shutdown()
+				} else if err := m.publishEvents(block); err != nil {
 					errChan <- err
-					m.shutdown()
-					continue
+					shutdown()
 				}
-			case <-m.running.Done():
+			case err := <-blockErrs:
+				errChan <- err
+				shutdown()
+			case <-ctx.Done():
 				m.logger.Info("closing all subscriptions")
 
 				m.subscribeLock.Lock()
@@ -94,6 +80,7 @@ func (m *Bus) FetchEvents(ctx context.Context) <-chan error {
 					sub.Close()
 				}
 				m.subscribeLock.Unlock()
+				<-m.source.Done()
 				close(m.done)
 				return
 			}

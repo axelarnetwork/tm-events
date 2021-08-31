@@ -20,19 +20,19 @@ import (
 	pubsubMock "github.com/axelarnetwork/tm-events/pubsub/mock"
 )
 
-func TestMgr_FetchEvents(t *testing.T) {
+func TestBus_FetchEvents(t *testing.T) {
 
 	t.Run("WHEN the event source throws an error THEN the bus returns error", func(t *testing.T) {
-		bus := func() pubsub.Bus { return &pubsubMock.BusMock{} }
+		busFactory := func() pubsub.Bus { return &pubsubMock.BusMock{} }
 		errors := make(chan error, 1)
 		source := &mock.BlockSourceMock{
 			BlockResultsFunc: func(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error) {
 				return make(chan *coretypes.ResultBlockResults), errors
 			},
 		}
-		mgr := events.NewEventBus(source, bus, log.TestingLogger())
+		bus := events.NewEventBus(source, busFactory, log.TestingLogger())
 
-		errChan := mgr.FetchEvents(context.Background())
+		errChan := bus.FetchEvents(context.Background())
 
 		errors <- fmt.Errorf("some error")
 
@@ -54,16 +54,16 @@ func TestMgr_FetchEvents(t *testing.T) {
 				return results, nil
 			},
 		}
-		mgr := events.NewEventBus(source, busFactory, log.TestingLogger())
+		bus := events.NewEventBus(source, busFactory, log.TestingLogger())
 
-		mgr.FetchEvents(context.Background())
+		bus.FetchEvents(context.Background())
 
 		close(results)
 
 		timeout, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 		select {
-		case <-mgr.Done():
+		case <-bus.Done():
 			return
 		case <-timeout.Done():
 			assert.FailNow(t, "timed out")
@@ -71,9 +71,9 @@ func TestMgr_FetchEvents(t *testing.T) {
 	})
 }
 
-func TestMgr_Subscribe(t *testing.T) {
+func TestBus_Subscribe(t *testing.T) {
 	var (
-		mgr       *events.Bus
+		bus       *events.Bus
 		query     *mock.QueryMock
 		newBlocks chan *coretypes.ResultBlockResults
 	)
@@ -101,7 +101,7 @@ func TestMgr_Subscribe(t *testing.T) {
 				},
 			}
 		}
-		mgr = events.NewEventBus(source, busFactory, log.TestingLogger())
+		bus = events.NewEventBus(source, busFactory, log.TestingLogger())
 
 		query = &mock.QueryMock{
 			MatchesFunc: func(map[string][]string) (bool, error) { return true, nil },
@@ -113,8 +113,8 @@ func TestMgr_Subscribe(t *testing.T) {
 	t.Run("query block with txs", testutils.Func(func(t *testing.T) {
 		setup()
 
-		mgr.FetchEvents(context.Background())
-		sub, err := mgr.Subscribe(query)
+		bus.FetchEvents(context.Background())
+		sub, err := bus.Subscribe(query)
 		assert.NoError(t, err)
 
 		newBlock := &coretypes.ResultBlockResults{
@@ -161,7 +161,7 @@ func TestMgr_Subscribe(t *testing.T) {
 	t.Run("match tm.event=Tx", testutils.Func(func(t *testing.T) {
 		setup()
 
-		mgr.FetchEvents(context.Background())
+		bus.FetchEvents(context.Background())
 		query.MatchesFunc = func(events map[string][]string) (bool, error) {
 			types := events[tm.EventTypeKey]
 
@@ -172,7 +172,7 @@ func TestMgr_Subscribe(t *testing.T) {
 			}
 			return false, nil
 		}
-		sub, err := mgr.Subscribe(query)
+		sub, err := bus.Subscribe(query)
 		assert.NoError(t, err)
 
 		newBlock := &coretypes.ResultBlockResults{
