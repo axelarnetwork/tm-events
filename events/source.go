@@ -20,22 +20,22 @@ import (
 // WebsocketQueueSize is set to the maximum length to prevent Tendermint from closing the connection due to congestion
 const WebsocketQueueSize = 32768
 
-type dialOptions struct {
-	timeout   time.Duration
-	retries   int
-	keepAlive time.Duration
+type DialOptions struct {
+	Timeout   time.Duration
+	Retries   int
+	KeepAlive time.Duration
 }
 
 // DialOption for Tendermint connections
 type DialOption struct {
-	apply func(options dialOptions) dialOptions
+	Apply func(options DialOptions) DialOptions
 }
 
 // Timeout sets the time after which the call to Tendermint is cancelled
 func Timeout(timeout time.Duration) DialOption {
 	return DialOption{
-		apply: func(options dialOptions) dialOptions {
-			options.timeout = timeout
+		Apply: func(options DialOptions) DialOptions {
+			options.Timeout = timeout
 			return options
 		},
 	}
@@ -44,8 +44,8 @@ func Timeout(timeout time.Duration) DialOption {
 // Retries sets the number of times a Tendermint call is retried
 func Retries(retries int) DialOption {
 	return DialOption{
-		apply: func(options dialOptions) dialOptions {
-			options.retries = retries
+		Apply: func(options DialOptions) DialOptions {
+			options.Retries = retries
 			return options
 		},
 	}
@@ -54,8 +54,8 @@ func Retries(retries int) DialOption {
 // KeepAlive sets the time after which contact to Tendermint is reestablished if no there is no communication
 func KeepAlive(interval time.Duration) DialOption {
 	return DialOption{
-		apply: func(options dialOptions) dialOptions {
-			options.keepAlive = interval
+		Apply: func(options DialOptions) DialOptions {
+			options.KeepAlive = interval
 			return options
 		},
 	}
@@ -78,18 +78,18 @@ type eventblockNotifier struct {
 }
 
 func newEventBlockNotifier(client SubscriptionClient, logger log.Logger, options ...DialOption) *eventblockNotifier {
-	var opts dialOptions
+	var opts DialOptions
 	for _, option := range options {
-		opts = option.apply(opts)
+		opts = option.Apply(opts)
 	}
 	return &eventblockNotifier{
 		client: client,
 		logger: logger,
 		query:  query.MustParse(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)).String(),
 
-		timeout:           opts.timeout,
-		retries:           opts.retries,
-		keepAliveInterval: opts.keepAlive,
+		timeout:           opts.Timeout,
+		retries:           opts.Retries,
+		keepAliveInterval: opts.KeepAlive,
 		done:              make(chan struct{}),
 	}
 }
@@ -114,7 +114,7 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 		}
 
 		for {
-			keepAlive, keepAliveCancel = ctxWithTimeout(context.Background(), b.keepAliveInterval)
+			keepAlive, keepAliveCancel = CtxWithTimeout(context.Background(), b.keepAliveInterval)
 			var blockHeaderEvent tm.EventDataNewBlockHeader
 			select {
 			case <-keepAlive.Done():
@@ -152,7 +152,7 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 func (b *eventblockNotifier) subscribe(ctx context.Context, retries int, timeout time.Duration) (<-chan coretypes.ResultEvent, error) {
 	backoff := utils.LinearBackOff(timeout)
 	for i := 0; i <= retries; i++ {
-		ctx, cancel := ctxWithTimeout(ctx, timeout)
+		ctx, cancel := CtxWithTimeout(ctx, timeout)
 		eventChan, err := b.client.Subscribe(ctx, "", b.query, WebsocketQueueSize)
 		cancel()
 		if err == nil {
@@ -166,7 +166,7 @@ func (b *eventblockNotifier) subscribe(ctx context.Context, retries int, timeout
 }
 
 func (b *eventblockNotifier) tryUnsubscribe(ctx context.Context, timeout time.Duration) {
-	ctx, cancel := ctxWithTimeout(ctx, timeout)
+	ctx, cancel := CtxWithTimeout(ctx, timeout)
 	defer cancel()
 
 	// this unsubscribe is a best-effort action, we still try to continue as usual if it fails, so errors are only logged
@@ -194,16 +194,16 @@ type queryBlockNotifier struct {
 }
 
 func newQueryBlockNotifier(client BlockHeightClient, logger log.Logger, options ...DialOption) *queryBlockNotifier {
-	var opts dialOptions
+	var opts DialOptions
 	for _, option := range options {
-		opts = option.apply(opts)
+		opts = option.Apply(opts)
 	}
 
 	return &queryBlockNotifier{
 		client:            client,
-		retries:           opts.retries,
-		timeout:           opts.timeout,
-		keepAliveInterval: opts.keepAlive,
+		retries:           opts.Retries,
+		timeout:           opts.Timeout,
+		keepAliveInterval: opts.KeepAlive,
 		logger:            logger,
 	}
 }
@@ -216,7 +216,7 @@ func (q queryBlockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-c
 		defer close(blocks)
 		defer q.logger.Info("stopped block query")
 
-		keepAlive, keepAliveCancel := ctxWithTimeout(context.Background(), q.keepAliveInterval)
+		keepAlive, keepAliveCancel := CtxWithTimeout(context.Background(), q.keepAliveInterval)
 		defer func() { keepAliveCancel() }() // the cancel function might get reassigned, so call it indirectly
 
 		for {
@@ -229,7 +229,7 @@ func (q queryBlockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-c
 					errChan <- err
 					return
 				}
-				keepAlive, keepAliveCancel = ctxWithTimeout(context.Background(), q.keepAliveInterval)
+				keepAlive, keepAliveCancel = CtxWithTimeout(context.Background(), q.keepAliveInterval)
 			case <-ctx.Done():
 				return
 			}
@@ -248,7 +248,7 @@ func (q queryBlockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-c
 func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, error) {
 	backoff := utils.LinearBackOff(q.timeout)
 	for i := 0; i <= q.retries; i++ {
-		ctx, cancel := ctxWithTimeout(ctx, q.timeout)
+		ctx, cancel := CtxWithTimeout(ctx, q.timeout)
 		latestBlockHeight, err := q.client.LatestBlockHeight(ctx)
 		cancel()
 		if err == nil {
@@ -296,11 +296,11 @@ func (b Notifier) Done() <-chan struct{} {
 
 // NewBlockNotifier returns a new BlockNotifier instance
 func NewBlockNotifier(client BlockClient, logger log.Logger, options ...DialOption) *Notifier {
-	var opts dialOptions
+	var opts DialOptions
 	for _, option := range options {
-		opts = option.apply(opts)
+		opts = option.Apply(opts)
 	}
-	ctx, cancel := ctxWithTimeout(context.Background(), opts.timeout)
+	ctx, cancel := CtxWithTimeout(context.Background(), opts.Timeout)
 	start, err := client.LatestBlockHeight(ctx)
 	cancel()
 	if err != nil {
@@ -472,7 +472,7 @@ func (b *blockSource) streamBlockResults(blockHeights <-chan int64, blocks chan 
 				errChan <- fmt.Errorf("cannot detect new blocks anymore")
 				return
 			}
-			ctx, cancel := ctxWithTimeout(b.running, b.timeout)
+			ctx, cancel := CtxWithTimeout(b.running, b.timeout)
 			result, err := b.client.BlockResults(ctx, &height)
 			cancel()
 			if err != nil {
@@ -487,7 +487,7 @@ func (b *blockSource) streamBlockResults(blockHeights <-chan int64, blocks chan 
 	}
 }
 
-func ctxWithTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+func CtxWithTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
 	if timeout == 0 {
 		return context.WithCancel(ctx)
 	}
