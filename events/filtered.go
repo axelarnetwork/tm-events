@@ -72,8 +72,8 @@ func recovery(errChan chan<- error) {
 }
 
 // OnlyBlockHeight wraps a function that only depends on block height and makes it compatible with the Consume function
-func OnlyBlockHeight(f func(int64)) func(event Event) error {
-	return func(e Event) error { f(e.Height); return nil }
+func OnlyBlockHeight(f func(int64) error) func(event Event) error {
+	return func(e Event) error { return f(e.Height) }
 }
 
 // QueryBuilder is a builder struct to create a pubsub.Query
