@@ -3,7 +3,7 @@ module github.com/axelarnetwork/tm-events
 go 1.16
 
 require (
-	github.com/axelarnetwork/utils v0.0.0-20210826021212-f6efff7a5582
+	github.com/axelarnetwork/utils v0.0.0-20210906073834-04b4ae0a29ab
 	github.com/boz/go-lifecycle v0.1.0
 	github.com/cosmos/cosmos-sdk v0.42.9
 	github.com/cucumber/godog v0.12.0
