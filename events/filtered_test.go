@@ -9,7 +9,7 @@ import (
 
 func TestQueryBuilder(t *testing.T) {
 	t.Run("build valid tx event query with module and attributes", func(t *testing.T) {
-		q := MatchTxEvent("testType").MatchModule("testModule").MatchAction("testAction").
+		q := NewTxEventQuery("testType").MatchModule("testModule").MatchAction("testAction").
 			MatchAttributes(
 				sdk.Attribute{Key: "attr1", Value: "attrValue1"},
 				sdk.Attribute{Key: "attr2", Value: "attrValue2"},
@@ -21,7 +21,7 @@ func TestQueryBuilder(t *testing.T) {
 			"AND testType.attr3='attrValue3' AND testType.attr4='attrValue4'", q.String())
 	})
 	t.Run("build valid block header event query with module and custom key/value matches", func(t *testing.T) {
-		q := MatchBlockHeaderEvent("testType").MatchModule("testModule").Match("someKey", "someValue").Build()
+		q := NewBlockHeaderEventQuery("testType").MatchModule("testModule").Match("someKey", "someValue").Build()
 		assert.Equal(t, "tm.event='NewBlockHeader' AND testType.module='testModule' AND someKey='someValue'", q.String())
 	})
 }
