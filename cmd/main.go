@@ -18,12 +18,6 @@ import (
 	"github.com/axelarnetwork/tm-events/tendermint"
 )
 
-// default flag values
-const (
-	DefaultWSEndpoint = "/websocket"
-	DefaultAddress    = "http://localhost:26657"
-)
-
 func main() {
 	var (
 		rpcURL   string
@@ -49,8 +43,8 @@ func main() {
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&rpcURL, "address", DefaultAddress, "tendermint RPC address")
-	cmd.PersistentFlags().StringVar(&endpoint, "endpoint", DefaultWSEndpoint, "websocket endpoint")
+	cmd.PersistentFlags().StringVar(&rpcURL, "address", tendermint.DefaultAddress, "tendermint RPC address")
+	cmd.PersistentFlags().StringVar(&endpoint, "endpoint", tendermint.DefaultWSEndpoint, "websocket endpoint")
 
 	cmd.AddCommand(
 		CmdWaitEvent(&eventBus, logger),
