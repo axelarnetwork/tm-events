@@ -9,6 +9,12 @@ import (
 	tmClient "github.com/tendermint/tendermint/rpc/client/http"
 )
 
+// default client parameters
+const (
+	DefaultWSEndpoint = "/websocket"
+	DefaultAddress    = "http://localhost:26657"
+)
+
 // StartClient connects a client to the given tendermint endpoint
 func StartClient(address string, endpoint string, logger tmlog.Logger) (client.Client, error) {
 	if !validEndpoint(endpoint) {
