@@ -82,13 +82,13 @@ type QueryBuilder struct {
 	ands      []string
 }
 
-// MatchTxEvent initializes a QueryBuilder for a query that matches the given transaction event type
-func MatchTxEvent(eventType string) QueryBuilder {
+// NewTxEventQuery initializes a QueryBuilder for a query that matches the given transaction event type
+func NewTxEventQuery(eventType string) QueryBuilder {
 	return QueryBuilder{eventType: eventType}.Match(tm.EventTypeKey, tm.EventTx)
 }
 
-// MatchBlockHeaderEvent initializes a QueryBuilder for a query that matches the given block header event type
-func MatchBlockHeaderEvent(eventType string) QueryBuilder {
+// NewBlockHeaderEventQuery initializes a QueryBuilder for a query that matches the given block header event type
+func NewBlockHeaderEventQuery(eventType string) QueryBuilder {
 	return QueryBuilder{eventType: eventType}.Match(tm.EventTypeKey, tm.EventNewBlockHeader)
 }
 
@@ -135,7 +135,7 @@ type Query struct {
 // QueryTxEventByAttributes creates a Query for a transaction event with the given attributes
 func QueryTxEventByAttributes(eventType string, module string, attributes ...sdk.Attribute) Query {
 	return Query{
-		TMQuery: MatchTxEvent(eventType).MatchModule(module).MatchAttributes(attributes...).Build(),
+		TMQuery: NewTxEventQuery(eventType).MatchModule(module).MatchAttributes(attributes...).Build(),
 		Predicate: func(e Event) bool {
 			return e.Type == eventType && e.Attributes[sdk.AttributeKeyModule] == module && matchAll(e, attributes...)
 		},
