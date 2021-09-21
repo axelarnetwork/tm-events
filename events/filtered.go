@@ -184,11 +184,6 @@ func matchAll(event Event, attributes ...sdk.Attribute) bool {
 // QueryTxEventByAttributeSets creates a Query for a transaction event with at least one attribute value
 // contained in every provided attribute value set.
 func QueryTxEventByAttributeSets(eventType string, module string, sets ...AttributeValueSet) Query {
-	var attributeKeys []string
-	for _, a := range sets {
-		attributeKeys = append(attributeKeys, a.key)
-	}
-
 	return Query{
 		TMQuery: NewTxEventQuery(eventType).MatchModule(module).Build(),
 		Predicate: func(e Event) bool {
