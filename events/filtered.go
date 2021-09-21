@@ -132,11 +132,13 @@ type Query struct {
 	Predicate func(event Event) bool
 }
 
+// AttributeValueSet represents a set of possible values for an Attribute key
 type AttributeValueSet struct {
 	key    string
 	values map[string]struct{}
 }
 
+// NewAttributeValueSet creates a set of possible values for an Attribute key from a list of strings
 func NewAttributeValueSet(key string, values ...string) AttributeValueSet {
 	valMap := make(map[string]struct{})
 
@@ -150,15 +152,8 @@ func NewAttributeValueSet(key string, values ...string) AttributeValueSet {
 	}
 }
 
+// Match checks whether the passed event contains an attribute whose value is contained by the set
 func (s AttributeValueSet) Match(e Event) bool {
-	if e.Attributes[sdk.AttributeKeyAction] == "reject" {
-		fmt.Println("reject")
-	}
-
-	if e.Attributes[sdk.AttributeKeyAction] == "confirm" {
-		fmt.Println("confirm")
-	}
-
 	if key, ok := e.Attributes[s.key]; ok {
 		if _, ok := s.values[key]; ok {
 			return true
@@ -186,7 +181,8 @@ func matchAll(event Event, attributes ...sdk.Attribute) bool {
 	return true
 }
 
-// QueryTxEventByAttributeSets creates a Query for a transaction event with at least one attribute value contained in the attribute value set
+// QueryTxEventByAttributeSets creates a Query for a transaction event with at least one attribute value
+// contained in every provided attribute value set.
 func QueryTxEventByAttributeSets(eventType string, module string, sets ...AttributeValueSet) Query {
 	var attributeKeys []string
 	for _, a := range sets {
@@ -233,7 +229,7 @@ func MustSubscribeWithAttributes(pub Publisher, eventType string, module string,
 		})
 }
 
-// MustSubscribeWithAttributes panics if subscription to the transaction event fails
+// MustSubscribeWithAttributeSets panics if subscription to the transaction event fails
 func MustSubscribeWithAttributeSets(pub Publisher, eventType string, module string, sets ...AttributeValueSet) FilteredSubscriber {
 	return MustSubscribe(pub, QueryTxEventByAttributeSets(eventType, module, sets...),
 		func(err error) error {
