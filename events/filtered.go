@@ -181,9 +181,9 @@ func matchAll(event Event, attributes ...sdk.Attribute) bool {
 	return true
 }
 
-// QueryTxEventByAttributeSets creates a Query for a transaction event with at least one attribute value
+// QueryTxEventByValueSets creates a Query for a transaction event with at least one attribute value
 // contained in every provided attribute value set.
-func QueryTxEventByAttributeSets(eventType string, module string, sets ...AttributeValueSet) Query {
+func QueryTxEventByValueSets(eventType string, module string, sets ...AttributeValueSet) Query {
 	return Query{
 		TMQuery: NewTxEventQuery(eventType).MatchModule(module).Build(),
 		Predicate: func(e Event) bool {
@@ -224,9 +224,9 @@ func MustSubscribeWithAttributes(pub Publisher, eventType string, module string,
 		})
 }
 
-// MustSubscribeWithAttributeSets panics if subscription to the transaction event fails
-func MustSubscribeWithAttributeSets(pub Publisher, eventType string, module string, sets ...AttributeValueSet) FilteredSubscriber {
-	return MustSubscribe(pub, QueryTxEventByAttributeSets(eventType, module, sets...),
+// MustSubscribeWithValueSets panics if subscription to the transaction event fails
+func MustSubscribeWithValueSets(pub Publisher, eventType string, module string, sets ...AttributeValueSet) FilteredSubscriber {
+	return MustSubscribe(pub, QueryTxEventByValueSets(eventType, module, sets...),
 		func(err error) error {
 			return sdkerrors.Wrapf(err, "subscription to event {type %s, module %s, attributes %v} failed", eventType, module, sets)
 		})

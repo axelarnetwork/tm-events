@@ -33,7 +33,7 @@ func TestQueryBuilder(t *testing.T) {
 		}
 
 		valueSet := NewAttributeValueSet(key, attributeValues...)
-		q := QueryTxEventByAttributeSets(eventType, module, valueSet)
+		q := QueryTxEventByValueSets(eventType, module, valueSet)
 
 		validCases := []Event{}
 		for i := 1; i < int(rand.I64Between(2, int64(len(attributeValues)))); i++ {
@@ -68,7 +68,7 @@ func TestQueryBuilder(t *testing.T) {
 		}
 
 		// empty value set
-		q = QueryTxEventByAttributeSets(eventType, module, NewAttributeValueSet(""))
+		q = QueryTxEventByValueSets(eventType, module, NewAttributeValueSet(""))
 		for _, event := range append(validCases, invalidCases...) {
 			assert.False(t, q.Predicate(event))
 		}
