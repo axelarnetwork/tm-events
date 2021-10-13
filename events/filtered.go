@@ -92,6 +92,11 @@ func NewBlockHeaderEventQuery(eventType string) QueryBuilder {
 	return QueryBuilder{eventType: eventType}.Match(tm.EventTypeKey, tm.EventNewBlockHeader)
 }
 
+// NewBlockEventQuery initializes a QueryBuilder for a query that matches the given block event type
+func NewBlockEventQuery(eventType string) QueryBuilder {
+	return QueryBuilder{eventType: eventType}.Match(tm.EventTypeKey, tm.EventNewBlock)
+}
+
 // Match adds a predicate to match the given key and value exactly to the query
 func (q QueryBuilder) Match(key, value string) QueryBuilder {
 	q.ands = append(q.ands, fmt.Sprintf("%s='%s'", key, value))
@@ -172,6 +177,16 @@ func QueryTxEventByAttributes(eventType string, module string, attributes ...sdk
 	}
 }
 
+// QueryNewBlockEventByAttributes creates a Query for a NewBlock event with the given attributes
+func QueryNewBlockEventByAttributes(eventType string, module string, attributes ...sdk.Attribute) Query {
+	return Query{
+		TMQuery: NewBlockEventQuery(eventType).MatchModule(module).MatchAttributes(attributes...).Build(),
+		Predicate: func(e Event) bool {
+			return e.Type == eventType && e.Attributes[sdk.AttributeKeyModule] == module && matchAll(e, attributes...)
+		},
+	}
+}
+
 func matchAll(event Event, attributes ...sdk.Attribute) bool {
 	for _, attribute := range attributes {
 		if event.Attributes[attribute.Key] != attribute.Value {
@@ -237,6 +252,14 @@ func MustSubscribeBlockHeader(pub Publisher) FilteredSubscriber {
 	q := QueryBlockHeader()
 	return MustSubscribe(pub, q,
 		func(err error) error { return sdkerrors.Wrapf(err, "subscription to block header failed") })
+}
+
+// MustSubscribeBlockEventWithAttributes panics if subscription to the NewBlock event fails
+func MustSubscribeBlockEventWithAttributes(pub Publisher, eventType string, module string, attributes ...sdk.Attribute) FilteredSubscriber {
+	return MustSubscribe(pub, QueryNewBlockEventByAttributes(eventType, module, attributes...),
+		func(err error) error {
+			return sdkerrors.Wrapf(err, "subscription to block event {type %s, module %s, attributes %v} failed", eventType, module, attributes)
+		})
 }
 
 // MustSubscribe panics if the subscription to the given query fails
