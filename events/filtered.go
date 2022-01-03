@@ -172,6 +172,16 @@ func QueryTxEventByAttributes(eventType string, module string, attributes ...sdk
 	}
 }
 
+// QueryBlockEventByAttributes creates a Query for a block event with the given attributes
+func QueryBlockEventByAttributes(eventType string, module string, attributes ...sdk.Attribute) Query {
+	return Query{
+		TMQuery: NewBlockHeaderEventQuery(eventType).MatchModule(module).MatchAttributes(attributes...).Build(),
+		Predicate: func(e Event) bool {
+			return e.Type == eventType && e.Attributes[sdk.AttributeKeyModule] == module && matchAll(e, attributes...)
+		},
+	}
+}
+
 func matchAll(event Event, attributes ...sdk.Attribute) bool {
 	for _, attribute := range attributes {
 		if event.Attributes[attribute.Key] != attribute.Value {
@@ -186,6 +196,17 @@ func matchAll(event Event, attributes ...sdk.Attribute) bool {
 func QueryTxEventByValueSets(eventType string, module string, sets ...AttributeValueSet) Query {
 	return Query{
 		TMQuery: NewTxEventQuery(eventType).MatchModule(module).Build(),
+		Predicate: func(e Event) bool {
+			return e.Type == eventType && e.Attributes[sdk.AttributeKeyModule] == module && matchAllValueSets(e, sets...)
+		},
+	}
+}
+
+// QueryBlockEventByValueSets creates a Query for a block event with at least one attribute value
+// contained in every provided attribute value set.
+func QueryBlockEventByValueSets(eventType string, module string, sets ...AttributeValueSet) Query {
+	return Query{
+		TMQuery: NewBlockHeaderEventQuery(eventType).MatchModule(module).Build(),
 		Predicate: func(e Event) bool {
 			return e.Type == eventType && e.Attributes[sdk.AttributeKeyModule] == module && matchAllValueSets(e, sets...)
 		},
