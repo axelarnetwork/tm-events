@@ -1,10 +1,10 @@
 .PHONY: build
 build: deps
-	go build -o ./bin/tmrpc -mod=readonly ./cmd
+	go build -o ./bin/tmrpc -mod=readonly ./cmd/tmrpc
 
 .PHONY: install
 install: deps
-	go install ./cmd
+	go install ./cmd/tmrpc
 
 go.sum: go.mod
 	@echo "--> Ensure dependencies have not been modified"
