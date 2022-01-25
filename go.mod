@@ -1,6 +1,6 @@
 module github.com/axelarnetwork/tm-events
 
-go 1.16
+go 1.15
 
 require (
 	github.com/axelarnetwork/utils v0.0.0-20211102051812-9d1028976360
