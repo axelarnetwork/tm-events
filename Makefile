@@ -47,4 +47,4 @@ deps: go.sum
 # Build a release image
 .PHONY: docker-image
 docker-image:
-	@DOCKER_BUILDKIT=1 docker build --ssh default -t axelar/tmrpc .
+	@DOCKER_BUILDKIT=1 docker build -t axelar/tmrpc .
