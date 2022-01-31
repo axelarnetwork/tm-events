@@ -95,10 +95,10 @@ func newEventBlockNotifier(client SubscriptionClient, logger log.Logger, options
 		opts = option.apply(opts)
 	}
 	return &eventblockNotifier{
-		client: client,
-		logger: logger,
-		query:  query.MustParse(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)).String(),
-
+		client:            client,
+		logger:            logger,
+		query:             query.MustParse(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)).String(),
+		backOff:           opts.backOff,
 		timeout:           opts.timeout,
 		retries:           opts.retries,
 		keepAliveInterval: opts.keepAlive,
