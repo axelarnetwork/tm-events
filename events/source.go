@@ -3,7 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
-	"sync"
+	tmclient "github.com/tendermint/tendermint/rpc/client"
 	"time"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -78,21 +78,11 @@ type BlockNotifier interface {
 	Done() <-chan struct{}
 }
 
+type ClientFactory func() (tmclient.Client, error)
 type BlockClientFactory func() (BlockClient, error)
 type SubscriptionClientFactory func() (SubscriptionClient, error)
 type BlockHeightClientFactory func() (BlockHeightClient, error)
-
-func toSubscriptionClient(f BlockClientFactory) SubscriptionClientFactory {
-	return func() (SubscriptionClient, error) {
-		return f()
-	}
-}
-
-func toBlockHeightClient(f BlockClientFactory) BlockHeightClientFactory {
-	return func() (BlockHeightClient, error) {
-		return f()
-	}
-}
+type BlockResultClientFactory func() (BlockResultClient, error)
 
 type eventblockNotifier struct {
 	logger            log.Logger
@@ -495,12 +485,17 @@ type BlockSource interface {
 }
 
 type blockSource struct {
-	once     sync.Once
-	notifier BlockNotifier
-	timeout  time.Duration
-	client   BlockResultClient
-	shutdown context.CancelFunc
-	running  context.Context
+	notifier  BlockNotifier
+	getClient BlockResultClientFactory
+	client    BlockResultClient
+	shutdown  context.CancelFunc
+	running   context.Context
+	logger    log.Logger
+
+	// dial options
+	retries int
+	backOff time.Duration
+	timeout time.Duration
 }
 
 // BlockResultClient can query for the block results of a specific block
@@ -509,16 +504,19 @@ type BlockResultClient interface {
 }
 
 // NewBlockSource returns a new BlockSource instance
-func NewBlockSource(client BlockResultClient, notifier BlockNotifier, queryTimeout ...time.Duration) BlockSource {
-	b := &blockSource{
-		client:   client,
-		notifier: notifier,
-	}
-	for _, timeout := range queryTimeout {
-		b.timeout = timeout
+func NewBlockSource(getClient BlockResultClientFactory, notifier BlockNotifier, options ...DialOption) BlockSource {
+	var opts dialOptions
+	for _, option := range options {
+		opts = option.apply(opts)
 	}
 
-	return b
+	return &blockSource{
+		getClient: getClient,
+		notifier:  notifier,
+		retries:   opts.retries,
+		backOff:   opts.backOff,
+		timeout:   opts.timeout,
+	}
 }
 
 func (b *blockSource) Done() <-chan struct{} {
@@ -562,9 +560,7 @@ func (b *blockSource) streamBlockResults(blockHeights <-chan int64, blocks chan 
 				errChan <- fmt.Errorf("cannot detect new blocks anymore")
 				return
 			}
-			ctx, cancel := ctxWithTimeout(b.running, b.timeout)
-			result, err := b.client.BlockResults(ctx, &height)
-			cancel()
+			result, err := b.fetchBlockResults(&height)
 			if err != nil {
 				errChan <- err
 				return
@@ -577,9 +573,75 @@ func (b *blockSource) streamBlockResults(blockHeights <-chan int64, blocks chan 
 	}
 }
 
+func (b *blockSource) connectNewClient() error {
+	var err error
+	b.client, err = b.getClient()
+	return err
+}
+
+func (b *blockSource) fetchBlockResults(height *int64) (*coretypes.ResultBlockResults, error) {
+
+	i := 0 // attempt count
+
+	// if the client connection or subscription setup fails then retry
+	trySubscribe := func() (*coretypes.ResultBlockResults, error) {
+		if b.client == nil || i > 0 {
+			if err := b.connectNewClient(); err != nil {
+				return nil, err
+			}
+		}
+
+		ctx, cancel := ctxWithTimeout(b.running, b.timeout)
+		defer cancel()
+
+		return b.client.BlockResults(ctx, height)
+	}
+
+	backOff := utils.ExponentialBackOff(b.backOff)
+	for ; i <= b.retries; i++ {
+		res, err := trySubscribe()
+		if err == nil {
+			b.logger.Debug(fmt.Sprintf("fetched result for block height %d", height))
+			return res, nil
+		}
+		b.logger.Debug(sdkerrors.Wrapf(err, "failed to result for block height %d, attempt %d", height, i+1).Error())
+		time.Sleep(backOff(i))
+	}
+	return nil, fmt.Errorf("aborting block result fetching after %d attemts ", b.retries+1)
+}
+
 func ctxWithTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
 	if timeout == 0 {
 		return context.WithCancel(ctx)
 	}
 	return context.WithTimeout(ctx, timeout)
+}
+
+func ToBlockClientFactory(f ClientFactory) BlockClientFactory {
+	return func() (BlockClient, error) {
+		c, err := f()
+		if err == nil {
+			return nil, err
+		}
+
+		return NewBlockClient(c), nil
+	}
+}
+
+func toSubscriptionClient(f BlockClientFactory) SubscriptionClientFactory {
+	return func() (SubscriptionClient, error) {
+		return f()
+	}
+}
+
+func toBlockHeightClient(f BlockClientFactory) BlockHeightClientFactory {
+	return func() (BlockHeightClient, error) {
+		return f()
+	}
+}
+
+func ToBlockResultClient(f ClientFactory) BlockResultClientFactory {
+	return func() (BlockResultClient, error) {
+		return f()
+	}
 }
