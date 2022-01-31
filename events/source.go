@@ -23,7 +23,7 @@ const WebsocketQueueSize = 32768
 type dialOptions struct {
 	timeout   time.Duration
 	retries   int
-	backoff   time.Duration
+	backOff   time.Duration
 	keepAlive time.Duration
 }
 
@@ -63,10 +63,10 @@ func KeepAlive(interval time.Duration) DialOption {
 }
 
 // BackOff sets the time to wait until retrying a failed call to Tendermint
-func BackOff(backoff time.Duration) DialOption {
+func BackOff(backOff time.Duration) DialOption {
 	return DialOption{
 		apply: func(options dialOptions) dialOptions {
-			options.backoff = backoff
+			options.backOff = backOff
 			return options
 		},
 	}
@@ -83,7 +83,7 @@ type eventblockNotifier struct {
 	client            SubscriptionClient
 	query             string
 	timeout           time.Duration
-	backoff           time.Duration
+	backOff           time.Duration
 	retries           int
 	keepAliveInterval time.Duration
 	done              chan struct{}
@@ -162,7 +162,7 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 }
 
 func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.ResultEvent, error) {
-	nextBackOff := utils.LinearBackOff(b.backoff)
+	nextBackOff := utils.LinearBackOff(b.backOff)
 	for i := 0; i <= b.retries; i++ {
 		ctx, cancel := ctxWithTimeout(ctx, b.timeout)
 		eventChan, err := b.client.Subscribe(ctx, "", b.query, WebsocketQueueSize)
@@ -201,7 +201,7 @@ type queryBlockNotifier struct {
 	client            BlockHeightClient
 	retries           int
 	timeout           time.Duration
-	backoff           time.Duration
+	backOff           time.Duration
 	keepAliveInterval time.Duration
 	logger            log.Logger
 }
@@ -215,7 +215,7 @@ func newQueryBlockNotifier(client BlockHeightClient, logger log.Logger, options 
 	return &queryBlockNotifier{
 		client:            client,
 		retries:           opts.retries,
-		backoff:           opts.backoff,
+		backOff:           opts.backOff,
 		timeout:           opts.timeout,
 		keepAliveInterval: opts.keepAlive,
 		logger:            logger,
@@ -260,7 +260,7 @@ func (q queryBlockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-c
 }
 
 func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, error) {
-	backoff := utils.LinearBackOff(q.backoff)
+	backOff := utils.LinearBackOff(q.backOff)
 	for i := 0; i <= q.retries; i++ {
 		ctx, cancel := ctxWithTimeout(ctx, q.timeout)
 		latestBlockHeight, err := q.client.LatestBlockHeight(ctx)
@@ -269,7 +269,7 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 			return latestBlockHeight, nil
 		}
 		q.logger.Info(sdkerrors.Wrapf(err, "failed to retrieve node status, attempt %d", i+1).Error())
-		time.Sleep(backoff(i))
+		time.Sleep(backOff(i))
 	}
 	return 0, fmt.Errorf("aborting sync status retrieval after %d attemts ", q.retries+1)
 }
