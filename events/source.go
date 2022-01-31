@@ -202,7 +202,7 @@ func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.Re
 		return b.client.Subscribe(ctx, "", b.query, WebsocketQueueSize)
 	}
 
-	backOff := utils.LinearBackOff(b.backOff)
+	backOff := utils.ExponentialBackOff(b.backOff)
 	for ; i <= b.retries; i++ {
 		eventChan, err := trySubscribe()
 		if err == nil {
@@ -319,7 +319,7 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 		return q.client.LatestBlockHeight(ctx)
 	}
 
-	backOff := utils.LinearBackOff(q.backOff)
+	backOff := utils.ExponentialBackOff(q.backOff)
 	for ; i <= q.retries; i++ {
 		latestBlockHeight, err := tryQuery()
 		if err == nil {
