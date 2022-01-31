@@ -331,7 +331,7 @@ func NewBlockNotifier(client BlockClient, logger log.Logger, options ...DialOpti
 }
 
 // StartingAt sets the start block from which to receive notifications
-func (b *Notifier) StartingAt(block int64) Notifier {
+func (b *Notifier) StartingAt(block int64) *Notifier {
 	if block > 0 {
 		b.start = block
 	}
