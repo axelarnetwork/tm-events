@@ -162,7 +162,7 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 }
 
 func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.ResultEvent, error) {
-	nextBackOff := utils.LinearBackOff(b.backOff)
+	backOff := utils.LinearBackOff(b.backOff)
 	for i := 0; i <= b.retries; i++ {
 		ctx, cancel := ctxWithTimeout(ctx, b.timeout)
 		eventChan, err := b.client.Subscribe(ctx, "", b.query, WebsocketQueueSize)
@@ -172,7 +172,7 @@ func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.Re
 			return eventChan, nil
 		}
 		b.logger.Debug(sdkerrors.Wrapf(err, "failed to subscribe to query \"%s\", attempt %d", b.query, i+1).Error())
-		time.Sleep(nextBackOff(i))
+		time.Sleep(backOff(i))
 	}
 	return nil, fmt.Errorf("aborting Tendermint block header subscription after %d attemts ", b.retries+1)
 }
