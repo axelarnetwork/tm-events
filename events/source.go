@@ -222,7 +222,7 @@ func newQueryBlockNotifier(client BlockHeightClient, logger log.Logger, options 
 	}
 }
 
-func (q queryBlockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-chan error) {
+func (q *queryBlockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-chan error) {
 	blocks := make(chan int64)
 	errChan := make(chan error, 1)
 
@@ -304,7 +304,7 @@ type Notifier struct {
 }
 
 // Done returns a channel that is closed when the Notifier has completed cleanup
-func (b Notifier) Done() <-chan struct{} {
+func (b *Notifier) Done() <-chan struct{} {
 	return b.eventsNotifier.Done()
 }
 
@@ -331,7 +331,7 @@ func NewBlockNotifier(client BlockClient, logger log.Logger, options ...DialOpti
 }
 
 // StartingAt sets the start block from which to receive notifications
-func (b Notifier) StartingAt(block int64) Notifier {
+func (b *Notifier) StartingAt(block int64) Notifier {
 	if block > 0 {
 		b.start = block
 	}
@@ -340,7 +340,7 @@ func (b Notifier) StartingAt(block int64) Notifier {
 
 // BlockHeights returns a channel with the block heights from the beginning of the chain to all newly discovered blocks.
 // Optionally, starts at the given start block.
-func (b Notifier) BlockHeights(ctx context.Context) (<-chan int64, <-chan error) {
+func (b *Notifier) BlockHeights(ctx context.Context) (<-chan int64, <-chan error) {
 	errChan := make(chan error, 1)
 	b.running, b.shutdown = context.WithCancel(ctx)
 
@@ -357,7 +357,7 @@ func (b Notifier) BlockHeights(ctx context.Context) (<-chan int64, <-chan error)
 	return blocks, errChan
 }
 
-func (b Notifier) handleErrors(eventErrs <-chan error, queryErrs <-chan error, errChan chan error) {
+func (b *Notifier) handleErrors(eventErrs <-chan error, queryErrs <-chan error, errChan chan error) {
 	defer b.shutdown()
 
 	for {
@@ -374,7 +374,7 @@ func (b Notifier) handleErrors(eventErrs <-chan error, queryErrs <-chan error, e
 	}
 }
 
-func (b Notifier) pipeLatestBlock(fromQuery <-chan int64, fromEvents <-chan int64, blockHeights chan int64) {
+func (b *Notifier) pipeLatestBlock(fromQuery <-chan int64, fromEvents <-chan int64, blockHeights chan int64) {
 	defer close(blockHeights)
 	defer b.logger.Info("stopped block sync")
 
