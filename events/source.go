@@ -78,9 +78,26 @@ type BlockNotifier interface {
 	Done() <-chan struct{}
 }
 
+type BlockClientFactory func() (BlockClient, error)
+type SubscriptionClientFactory func() (SubscriptionClient, error)
+type BlockHeightClientFactory func() (BlockHeightClient, error)
+
+func toSubscriptionClient(f BlockClientFactory) SubscriptionClientFactory {
+	return func() (SubscriptionClient, error) {
+		return f()
+	}
+}
+
+func toBlockHeightClient(f BlockClientFactory) BlockHeightClientFactory {
+	return func() (BlockHeightClient, error) {
+		return f()
+	}
+}
+
 type eventblockNotifier struct {
 	logger            log.Logger
 	client            SubscriptionClient
+	getClient         SubscriptionClientFactory
 	query             string
 	timeout           time.Duration
 	backOff           time.Duration
@@ -89,13 +106,13 @@ type eventblockNotifier struct {
 	done              chan struct{}
 }
 
-func newEventBlockNotifier(client SubscriptionClient, logger log.Logger, options ...DialOption) *eventblockNotifier {
+func newEventBlockNotifier(getClient SubscriptionClientFactory, logger log.Logger, options ...DialOption) *eventblockNotifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
 	}
 	return &eventblockNotifier{
-		client:            client,
+		getClient:         getClient,
 		logger:            logger,
 		query:             query.MustParse(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)).String(),
 		backOff:           opts.backOff,
@@ -161,12 +178,33 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 	return blocks, errChan
 }
 
+func (b *eventblockNotifier) connectNewClient() error {
+	var err error
+	b.client, err = b.getClient()
+	return err
+}
+
 func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.ResultEvent, error) {
-	backOff := utils.LinearBackOff(b.backOff)
-	for i := 0; i <= b.retries; i++ {
+
+	i := 0 // attempt count
+
+	// if the client connection or subscription setup fails then retry
+	trySubscribe := func() (<-chan coretypes.ResultEvent, error) {
+		if b.client == nil || i > 0 {
+			if err := b.connectNewClient(); err != nil {
+				return nil, err
+			}
+		}
+
 		ctx, cancel := ctxWithTimeout(ctx, b.timeout)
-		eventChan, err := b.client.Subscribe(ctx, "", b.query, WebsocketQueueSize)
-		cancel()
+		defer cancel()
+
+		return b.client.Subscribe(ctx, "", b.query, WebsocketQueueSize)
+	}
+
+	backOff := utils.LinearBackOff(b.backOff)
+	for ; i <= b.retries; i++ {
+		eventChan, err := trySubscribe()
 		if err == nil {
 			b.logger.Debug(fmt.Sprintf("subscribed to query \"%s\"", b.query))
 			return eventChan, nil
@@ -198,6 +236,7 @@ func (b *eventblockNotifier) Done() chan struct{} {
 }
 
 type queryBlockNotifier struct {
+	getClient         BlockHeightClientFactory
 	client            BlockHeightClient
 	retries           int
 	timeout           time.Duration
@@ -206,14 +245,14 @@ type queryBlockNotifier struct {
 	logger            log.Logger
 }
 
-func newQueryBlockNotifier(client BlockHeightClient, logger log.Logger, options ...DialOption) *queryBlockNotifier {
+func newQueryBlockNotifier(getClient BlockHeightClientFactory, logger log.Logger, options ...DialOption) *queryBlockNotifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
 	}
 
 	return &queryBlockNotifier{
-		client:            client,
+		getClient:         getClient,
 		retries:           opts.retries,
 		backOff:           opts.backOff,
 		timeout:           opts.timeout,
@@ -259,15 +298,34 @@ func (q *queryBlockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 	return blocks, errChan
 }
 
+func (b *queryBlockNotifier) connectNewClient() error {
+	var err error
+	b.client, err = b.getClient()
+	return err
+}
+
 func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, error) {
-	backOff := utils.LinearBackOff(q.backOff)
-	for i := 0; i <= q.retries; i++ {
+	i := 0
+
+	tryQuery := func() (int64, error) {
+		if q.client == nil || i > 0 {
+			if err := q.connectNewClient(); err != nil {
+				return 0, err
+			}
+		}
+
 		ctx, cancel := ctxWithTimeout(ctx, q.timeout)
-		latestBlockHeight, err := q.client.LatestBlockHeight(ctx)
-		cancel()
+		defer cancel()
+		return q.client.LatestBlockHeight(ctx)
+	}
+
+	backOff := utils.LinearBackOff(q.backOff)
+	for ; i <= q.retries; i++ {
+		latestBlockHeight, err := tryQuery()
 		if err == nil {
 			return latestBlockHeight, nil
 		}
+
 		q.logger.Info(sdkerrors.Wrapf(err, "failed to retrieve node status, attempt %d", i+1).Error())
 		time.Sleep(backOff(i))
 	}
@@ -296,11 +354,13 @@ var _ BlockNotifier = &Notifier{}
 // Notifier can notify a consumer about new blocks
 type Notifier struct {
 	logger         log.Logger
+	getClient      BlockClientFactory
 	queryNotifier  *queryBlockNotifier
 	eventsNotifier *eventblockNotifier
 	running        context.Context
 	shutdown       context.CancelFunc
 	start          int64
+	timeout        time.Duration
 }
 
 // Done returns a channel that is closed when the Notifier has completed cleanup
@@ -309,24 +369,19 @@ func (b *Notifier) Done() <-chan struct{} {
 }
 
 // NewBlockNotifier returns a new BlockNotifier instance
-func NewBlockNotifier(client BlockClient, logger log.Logger, options ...DialOption) *Notifier {
+func NewBlockNotifier(getClient BlockClientFactory, logger log.Logger, options ...DialOption) *Notifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
 	}
-	ctx, cancel := ctxWithTimeout(context.Background(), opts.timeout)
-	start, err := client.LatestBlockHeight(ctx)
-	cancel()
-	if err != nil {
-		start = 1
-	}
 
 	logger = logger.With("listener", "blocks")
 	return &Notifier{
-		start:          start,
+		getClient:      getClient,
 		logger:         logger,
-		eventsNotifier: newEventBlockNotifier(client, logger, options...),
-		queryNotifier:  newQueryBlockNotifier(client, logger, options...),
+		timeout:        opts.timeout,
+		eventsNotifier: newEventBlockNotifier(toSubscriptionClient(getClient), logger, options...),
+		queryNotifier:  newQueryBlockNotifier(toBlockHeightClient(getClient), logger, options...),
 	}
 }
 
@@ -338,11 +393,32 @@ func (b *Notifier) StartingAt(block int64) *Notifier {
 	return b
 }
 
+func (b *Notifier) getLatestBlockHeight() (int64, error) {
+	client, err := b.getClient()
+	if err != nil {
+		return 0, err
+	}
+
+	ctx, cancel := ctxWithTimeout(context.Background(), b.timeout)
+	defer cancel()
+	return client.LatestBlockHeight(ctx)
+}
+
 // BlockHeights returns a channel with the block heights from the beginning of the chain to all newly discovered blocks.
 // Optionally, starts at the given start block.
 func (b *Notifier) BlockHeights(ctx context.Context) (<-chan int64, <-chan error) {
 	errChan := make(chan error, 1)
 	b.running, b.shutdown = context.WithCancel(ctx)
+
+	// if no start block has been set explicitly fetch the latest block height
+	if b.start == 0 {
+
+		b.start = -1
+		height, err := b.getLatestBlockHeight()
+		if err == nil { // do not throw if initial connection attempt fails
+			b.start = height
+		}
+	}
 
 	blocksFromQuery, queryErrs := b.queryNotifier.BlockHeights(b.running)
 	blocksFromEvents, eventErrs := b.eventsNotifier.BlockHeights(b.running)
