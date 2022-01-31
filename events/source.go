@@ -23,6 +23,7 @@ const WebsocketQueueSize = 32768
 type dialOptions struct {
 	timeout   time.Duration
 	retries   int
+	backoff   time.Duration
 	keepAlive time.Duration
 }
 
@@ -61,6 +62,16 @@ func KeepAlive(interval time.Duration) DialOption {
 	}
 }
 
+// BackOff sets the time to wait until retrying a failed call to Tendermint
+func BackOff(backoff time.Duration) DialOption {
+	return DialOption{
+		apply: func(options dialOptions) dialOptions {
+			options.backoff = backoff
+			return options
+		},
+	}
+}
+
 // BlockNotifier notifies the caller of new blocks
 type BlockNotifier interface {
 	BlockHeights(ctx context.Context) (<-chan int64, <-chan error)
@@ -72,6 +83,7 @@ type eventblockNotifier struct {
 	client            SubscriptionClient
 	query             string
 	timeout           time.Duration
+	backoff           time.Duration
 	retries           int
 	keepAliveInterval time.Duration
 	done              chan struct{}
@@ -107,7 +119,7 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 		defer b.logger.Info("stopped listening to events")
 		defer b.tryUnsubscribe(context.Background(), b.timeout)
 
-		eventChan, err := b.subscribe(ctx, b.retries, b.timeout)
+		eventChan, err := b.subscribe(ctx)
 		if err != nil {
 			errChan <- err
 			return
@@ -120,7 +132,7 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 			case <-keepAlive.Done():
 				b.logger.Debug(fmt.Sprintf("no block event in %.2f seconds", b.keepAliveInterval.Seconds()))
 				b.tryUnsubscribe(ctx, b.timeout)
-				eventChan, err = b.subscribe(ctx, b.retries, b.timeout)
+				eventChan, err = b.subscribe(ctx)
 				if err != nil {
 					errChan <- err
 					return
@@ -149,10 +161,10 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 	return blocks, errChan
 }
 
-func (b *eventblockNotifier) subscribe(ctx context.Context, retries int, timeout time.Duration) (<-chan coretypes.ResultEvent, error) {
-	backoff := utils.LinearBackOff(timeout)
-	for i := 0; i <= retries; i++ {
-		ctx, cancel := ctxWithTimeout(ctx, timeout)
+func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.ResultEvent, error) {
+	nextBackOff := utils.LinearBackOff(b.backoff)
+	for i := 0; i <= b.retries; i++ {
+		ctx, cancel := ctxWithTimeout(ctx, b.timeout)
 		eventChan, err := b.client.Subscribe(ctx, "", b.query, WebsocketQueueSize)
 		cancel()
 		if err == nil {
@@ -160,9 +172,9 @@ func (b *eventblockNotifier) subscribe(ctx context.Context, retries int, timeout
 			return eventChan, nil
 		}
 		b.logger.Debug(sdkerrors.Wrapf(err, "failed to subscribe to query \"%s\", attempt %d", b.query, i+1).Error())
-		time.Sleep(backoff(i))
+		time.Sleep(nextBackOff(i))
 	}
-	return nil, fmt.Errorf("aborting Tendermint block header subscription after %d attemts ", retries+1)
+	return nil, fmt.Errorf("aborting Tendermint block header subscription after %d attemts ", b.retries+1)
 }
 
 func (b *eventblockNotifier) tryUnsubscribe(ctx context.Context, timeout time.Duration) {
@@ -189,6 +201,7 @@ type queryBlockNotifier struct {
 	client            BlockHeightClient
 	retries           int
 	timeout           time.Duration
+	backoff           time.Duration
 	keepAliveInterval time.Duration
 	logger            log.Logger
 }
@@ -202,6 +215,7 @@ func newQueryBlockNotifier(client BlockHeightClient, logger log.Logger, options 
 	return &queryBlockNotifier{
 		client:            client,
 		retries:           opts.retries,
+		backoff:           opts.backoff,
 		timeout:           opts.timeout,
 		keepAliveInterval: opts.keepAlive,
 		logger:            logger,
@@ -246,7 +260,7 @@ func (q queryBlockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-c
 }
 
 func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, error) {
-	backoff := utils.LinearBackOff(q.timeout)
+	backoff := utils.LinearBackOff(q.backoff)
 	for i := 0; i <= q.retries; i++ {
 		ctx, cancel := ctxWithTimeout(ctx, q.timeout)
 		latestBlockHeight, err := q.client.LatestBlockHeight(ctx)
