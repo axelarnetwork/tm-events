@@ -504,7 +504,7 @@ type BlockResultClient interface {
 }
 
 // NewBlockSource returns a new BlockSource instance
-func NewBlockSource(getClient BlockResultClientFactory, notifier BlockNotifier, options ...DialOption) BlockSource {
+func NewBlockSource(getClient BlockResultClientFactory, notifier BlockNotifier, logger log.Logger, options ...DialOption) BlockSource {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
@@ -516,6 +516,7 @@ func NewBlockSource(getClient BlockResultClientFactory, notifier BlockNotifier, 
 		retries:   opts.retries,
 		backOff:   opts.backOff,
 		timeout:   opts.timeout,
+		logger:    logger,
 	}
 }
 
