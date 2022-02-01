@@ -18,10 +18,17 @@ import (
 	"github.com/axelarnetwork/tm-events/events/mock"
 )
 
+func getBlockClient(client events.BlockClient) events.BlockClientFactory {
+	return func() (events.BlockClient, error) {
+		return client, nil
+	}
+}
+
 func TestBlockNotifier_BlockHeights(t *testing.T) {
 	repeats := 20
 
 	t.Run("GIVEN only query is responsive THEN sync all blocks", testutils.Func(func(t *testing.T) {
+
 		client := NewClientMock()
 		client.SubscribeFunc = func(context.Context, string, string, ...int) (<-chan coretypes.ResultEvent, error) {
 			return nil, nil
