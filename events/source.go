@@ -209,6 +209,10 @@ func (b *eventblockNotifier) tryUnsubscribe(ctx context.Context, timeout time.Du
 	ctx, cancel := ctxWithTimeout(ctx, timeout)
 	defer cancel()
 
+	if b.client == nil {
+		return
+	}
+
 	// this unsubscribe is a best-effort action, we still try to continue as usual if it fails, so errors are only logged
 	err := b.client.Unsubscribe(ctx, "", b.query)
 	if err != nil {
