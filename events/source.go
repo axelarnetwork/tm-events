@@ -81,22 +81,32 @@ type BlockNotifier interface {
 
 type (
 	// ClientFactory returns a new tendermint client
-	ClientFactory func() (tmclient.Client, error)
+	ClientFactory interface {
+		Create() (tmclient.Client, error)
+	}
 
 	// BlockClientFactory returns a new Block client
-	BlockClientFactory func() (BlockClient, error)
+	BlockClientFactory interface {
+		Create() (BlockClient, error)
+	}
 
 	// BlockResultClientFactory returns a new Block client
-	BlockResultClientFactory func() (BlockResultClient, error)
+	BlockResultClientFactory interface {
+		Create() (BlockResultClient, error)
+	}
 
-	subscriptionClientFactory func() (SubscriptionClient, error)
-	blockHeightClientFactory  func() (BlockHeightClient, error)
+	subscriptionClientFactory interface {
+		Create() (SubscriptionClient, error)
+	}
+	blockHeightClientFactory interface {
+		Create() (BlockHeightClient, error)
+	}
 )
 
 type eventblockNotifier struct {
 	logger            log.Logger
 	client            SubscriptionClient
-	getClient         subscriptionClientFactory
+	clientFactory     subscriptionClientFactory
 	query             string
 	timeout           time.Duration
 	backOff           time.Duration
@@ -105,13 +115,13 @@ type eventblockNotifier struct {
 	done              chan struct{}
 }
 
-func newEventBlockNotifier(getClient subscriptionClientFactory, logger log.Logger, options ...DialOption) *eventblockNotifier {
+func newEventBlockNotifier(clientFactory subscriptionClientFactory, logger log.Logger, options ...DialOption) *eventblockNotifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
 	}
 	return &eventblockNotifier{
-		getClient:         getClient,
+		clientFactory:     clientFactory,
 		logger:            logger,
 		query:             query.MustParse(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)).String(),
 		backOff:           opts.backOff,
@@ -182,7 +192,7 @@ func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.Re
 	for i := 0; i <= b.retries; i++ {
 		if b.client == nil || i > 0 {
 			var err error
-			if b.client, err = b.getClient(); err != nil {
+			if b.client, err = b.clientFactory.Create(); err != nil {
 				return nil, err
 			}
 		}
@@ -225,7 +235,7 @@ func (b *eventblockNotifier) Done() chan struct{} {
 }
 
 type queryBlockNotifier struct {
-	getClient         blockHeightClientFactory
+	clientFactory     blockHeightClientFactory
 	client            BlockHeightClient
 	retries           int
 	timeout           time.Duration
@@ -234,14 +244,14 @@ type queryBlockNotifier struct {
 	logger            log.Logger
 }
 
-func newQueryBlockNotifier(getClient blockHeightClientFactory, logger log.Logger, options ...DialOption) *queryBlockNotifier {
+func newQueryBlockNotifier(clientFactory blockHeightClientFactory, logger log.Logger, options ...DialOption) *queryBlockNotifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
 	}
 
 	return &queryBlockNotifier{
-		getClient:         getClient,
+		clientFactory:     clientFactory,
 		retries:           opts.retries,
 		backOff:           opts.backOff,
 		timeout:           opts.timeout,
@@ -287,30 +297,19 @@ func (q *queryBlockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 	return blocks, errChan
 }
 
-func (q *queryBlockNotifier) connectNewClient() error {
-	var err error
-	q.client, err = q.getClient()
-	return err
-}
-
 func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, error) {
-	i := 0
-
-	tryQuery := func() (int64, error) {
+	backOff := utils.LinearBackOff(q.backOff)
+	for i := 0; i <= q.retries; i++ {
 		if q.client == nil || i > 0 {
-			if err := q.connectNewClient(); err != nil {
+			var err error
+			if q.client, err = q.clientFactory.Create(); err != nil {
 				return 0, err
 			}
 		}
 
 		ctx, cancel := ctxWithTimeout(ctx, q.timeout)
-		defer cancel()
-		return q.client.LatestBlockHeight(ctx)
-	}
-
-	backOff := utils.LinearBackOff(q.backOff)
-	for ; i <= q.retries; i++ {
-		latestBlockHeight, err := tryQuery()
+		latestBlockHeight, err := q.client.LatestBlockHeight(ctx)
+		cancel()
 		if err == nil {
 			return latestBlockHeight, nil
 		}
@@ -343,7 +342,7 @@ var _ BlockNotifier = &Notifier{}
 // Notifier can notify a consumer about new blocks
 type Notifier struct {
 	logger         log.Logger
-	getClient      BlockClientFactory
+	clientFactory  BlockClientFactory
 	queryNotifier  *queryBlockNotifier
 	eventsNotifier *eventblockNotifier
 	running        context.Context
@@ -361,16 +360,13 @@ func (b *Notifier) Done() <-chan struct{} {
 // NewBlockNotifier maintains compatibility with vald
 // Deprecated: use NewBlockNotifierWithClientFactory instead
 func NewBlockNotifier(client BlockClient, logger log.Logger, options ...DialOption) *Notifier {
-	getClient := func() (BlockClient, error) {
-		return client, nil
-	}
-	return NewBlockNotifierWithClientFactory(getClient, logger, options...)
+	return NewBlockNotifierWithClientFactory(blockClientFactoryAdapter{client}, logger, options...)
 }
 
 // NewBlockNotifierWithClientFactory returns a new BlockNotifier instance which uses a factory function to fetch
 // a new client when request fails.
 // It also accepts dial options that configure the request management behaviour.
-func NewBlockNotifierWithClientFactory(getClient BlockClientFactory, logger log.Logger, options ...DialOption) *Notifier {
+func NewBlockNotifierWithClientFactory(clientFactory BlockClientFactory, logger log.Logger, options ...DialOption) *Notifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
@@ -378,11 +374,11 @@ func NewBlockNotifierWithClientFactory(getClient BlockClientFactory, logger log.
 
 	logger = logger.With("listener", "blocks")
 	return &Notifier{
-		getClient:      getClient,
+		clientFactory:  clientFactory,
 		logger:         logger,
 		timeout:        opts.timeout,
-		eventsNotifier: newEventBlockNotifier(subscriptionClientAdapter(getClient), logger, options...),
-		queryNotifier:  newQueryBlockNotifier(blockHeightClientAdapter(getClient), logger, options...),
+		eventsNotifier: newEventBlockNotifier(subscriptionClientFactoryAdapter{clientFactory}, logger, options...),
+		queryNotifier:  newQueryBlockNotifier(blockHeightClientFactoryAdapter{clientFactory}, logger, options...),
 	}
 }
 
@@ -395,7 +391,7 @@ func (b *Notifier) StartingAt(block int64) *Notifier {
 }
 
 func (b *Notifier) getLatestBlockHeight() (int64, error) {
-	client, err := b.getClient()
+	client, err := b.clientFactory.Create()
 	if err != nil {
 		return 0, err
 	}
@@ -496,12 +492,12 @@ type BlockSource interface {
 }
 
 type blockSource struct {
-	notifier  BlockNotifier
-	getClient BlockResultClientFactory
-	client    BlockResultClient
-	shutdown  context.CancelFunc
-	running   context.Context
-	logger    log.Logger
+	notifier      BlockNotifier
+	clientFactory BlockResultClientFactory
+	client        BlockResultClient
+	shutdown      context.CancelFunc
+	running       context.Context
+	logger        log.Logger
 
 	// dial options
 	retries int
@@ -518,34 +514,31 @@ type BlockResultClient interface {
 // NewBlockSource maintains compatibility with vald
 // Deprecated: use NewBlockSourceWithClientFactory instead
 func NewBlockSource(client BlockResultClient, notifier BlockNotifier, timeout ...time.Duration) BlockSource {
-	getClient := func() (BlockResultClient, error) {
-		return client, nil
-	}
 
 	var t time.Duration
 	for _, timeout := range timeout {
 		t = timeout
 	}
 
-	return NewBlockSourceWithClientFactory(getClient, notifier, log.NewNopLogger(), Timeout(t))
+	return NewBlockSourceWithClientFactory(blockResultsClientFactoryAdapter{client: client}, notifier, log.NewNopLogger(), Timeout(t))
 }
 
 // NewBlockSourceWithClientFactory returns a new BlockSource instance which uses a factory function to fetch
 // a new client when request fails.
 // It also accepts dial options that configure the request management behaviour.
-func NewBlockSourceWithClientFactory(getClient BlockResultClientFactory, notifier BlockNotifier, logger log.Logger, options ...DialOption) BlockSource {
+func NewBlockSourceWithClientFactory(clientFactory BlockResultClientFactory, notifier BlockNotifier, logger log.Logger, options ...DialOption) BlockSource {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
 	}
 
 	return &blockSource{
-		getClient: getClient,
-		notifier:  notifier,
-		retries:   opts.retries,
-		backOff:   opts.backOff,
-		timeout:   opts.timeout,
-		logger:    logger,
+		clientFactory: clientFactory,
+		notifier:      notifier,
+		retries:       opts.retries,
+		backOff:       opts.backOff,
+		timeout:       opts.timeout,
+		logger:        logger,
 	}
 }
 
@@ -603,33 +596,21 @@ func (b *blockSource) streamBlockResults(blockHeights <-chan int64, blocks chan 
 	}
 }
 
-func (b *blockSource) connectNewClient() error {
-	var err error
-	b.client, err = b.getClient()
-	return err
-}
-
 func (b *blockSource) fetchBlockResults(height *int64) (*coretypes.ResultBlockResults, error) {
-
-	i := 0 // attempt count
-
 	// if the client connection or subscription setup fails then retry
-	trySubscribe := func() (*coretypes.ResultBlockResults, error) {
+	backOff := utils.LinearBackOff(b.backOff)
+	for i := 0; i <= b.retries; i++ {
 		if b.client == nil || i > 0 {
-			if err := b.connectNewClient(); err != nil {
+			var err error
+			if b.client, err = b.clientFactory.Create(); err != nil {
 				return nil, err
 			}
 		}
 
 		ctx, cancel := ctxWithTimeout(b.running, b.timeout)
-		defer cancel()
 
-		return b.client.BlockResults(ctx, height)
-	}
-
-	backOff := utils.LinearBackOff(b.backOff)
-	for ; i <= b.retries; i++ {
-		res, err := trySubscribe()
+		res, err := b.client.BlockResults(ctx, height)
+		cancel()
 		if err == nil {
 			b.logger.Debug(fmt.Sprintf("fetched result for block height %d", height))
 			return res, nil
@@ -647,33 +628,43 @@ func ctxWithTimeout(ctx context.Context, timeout time.Duration) (context.Context
 	return context.WithTimeout(ctx, timeout)
 }
 
-// BlockClientAdapter adapts a Tendermint ClientFactory to a BlockClientFactory
-func BlockClientAdapter(f ClientFactory) BlockClientFactory {
-	return func() (BlockClient, error) {
-		c, err := f()
-		if err != nil {
-			return nil, err
-		}
+// BlockClientFactoryAdapter adapts a Tendermint ClientFactory to a BlockClientFactory
+type BlockClientFactoryAdapter struct{ f ClientFactory }
 
-		return NewBlockClient(c), nil
+// Create implements the BlockClientFactory interface
+func (a BlockClientFactoryAdapter) Create() (BlockClient, error) {
+	c, err := a.f.Create()
+	if err != nil {
+		return nil, err
 	}
+
+	return NewBlockClient(c), nil
 }
 
-// BlockResultClientAdapter adapts a Tendermint ClientFactory  to a BlockResultClientFactory
-func BlockResultClientAdapter(f ClientFactory) BlockResultClientFactory {
-	return func() (BlockResultClient, error) {
-		return f()
-	}
+type blockResultsClientFactoryAdapter struct {
+	client BlockResultClient
 }
 
-func subscriptionClientAdapter(f BlockClientFactory) subscriptionClientFactory {
-	return func() (SubscriptionClient, error) {
-		return f()
-	}
+func (a blockResultsClientFactoryAdapter) Create() (BlockResultClient, error) {
+	return a.client, nil
 }
 
-func blockHeightClientAdapter(f BlockClientFactory) blockHeightClientFactory {
-	return func() (BlockHeightClient, error) {
-		return f()
-	}
+type subscriptionClientFactoryAdapter struct{ f BlockClientFactory }
+
+func (a subscriptionClientFactoryAdapter) Create() (SubscriptionClient, error) {
+	return a.f.Create()
+}
+
+type blockHeightClientFactoryAdapter struct{ f BlockClientFactory }
+
+func (a blockHeightClientFactoryAdapter) Create() (BlockHeightClient, error) {
+	return a.f.Create()
+}
+
+type blockClientFactoryAdapter struct {
+	client BlockClient
+}
+
+func (b blockClientFactoryAdapter) Create() (BlockClient, error) {
+	return b.client, nil
 }

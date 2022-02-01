@@ -18,12 +18,6 @@ import (
 	"github.com/axelarnetwork/tm-events/events/mock"
 )
 
-func getBlockClient(client events.BlockClient) events.BlockClientFactory {
-	return func() (events.BlockClient, error) {
-		return client, nil
-	}
-}
-
 func TestBlockNotifier_BlockHeights(t *testing.T) {
 	repeats := 20
 
