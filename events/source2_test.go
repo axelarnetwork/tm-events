@@ -63,7 +63,7 @@ func (t *testEnv) getResultClient() events.BlockResultClientFactory {
 }
 
 func (t *testEnv) BlockNotifierStartingAtBlock(start int64) error {
-	t.notifier = events.NewBlockNotifier(t.getBlockClient(), log.TestingLogger(),
+	t.notifier = events.NewBlockNotifier(t.notifierClient, log.TestingLogger(),
 		events.Timeout(1*time.Millisecond), events.Retries(1), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
 	return nil
 }

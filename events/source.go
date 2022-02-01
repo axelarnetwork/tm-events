@@ -359,7 +359,16 @@ func (b *Notifier) Done() <-chan struct{} {
 }
 
 // NewBlockNotifier returns a new BlockNotifier instance
-func NewBlockNotifier(getClient BlockClientFactory, logger log.Logger, options ...DialOption) *Notifier {
+// NewBlockNotifier maintains compatibility with vald
+func NewBlockNotifier(client BlockClient, logger log.Logger, options ...DialOption) *Notifier {
+	getClient := func() (BlockClient, error) {
+		return client, nil
+	}
+	return NewBlockNotifierWithClient(getClient, logger, options...)
+}
+
+// NewBlockNotifierWithClient returns a new BlockNotifier instance
+func NewBlockNotifierWithClient(getClient BlockClientFactory, logger log.Logger, options ...DialOption) *Notifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
