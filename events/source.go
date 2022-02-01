@@ -364,11 +364,11 @@ func NewBlockNotifier(client BlockClient, logger log.Logger, options ...DialOpti
 	getClient := func() (BlockClient, error) {
 		return client, nil
 	}
-	return NewBlockNotifierWithClient(getClient, logger, options...)
+	return NewBlockNotifierWithDialOptions(getClient, logger, options...)
 }
 
-// NewBlockNotifierWithClient returns a new BlockNotifier instance
-func NewBlockNotifierWithClient(getClient BlockClientFactory, logger log.Logger, options ...DialOption) *Notifier {
+// NewBlockNotifierWithDialOptions returns a new BlockNotifier instance with dial options
+func NewBlockNotifierWithDialOptions(getClient BlockClientFactory, logger log.Logger, options ...DialOption) *Notifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
@@ -513,7 +513,17 @@ type BlockResultClient interface {
 }
 
 // NewBlockSource returns a new BlockSource instance
-func NewBlockSource(getClient BlockResultClientFactory, notifier BlockNotifier, logger log.Logger, options ...DialOption) BlockSource {
+// NewBlockSource maintains compatibility with vald
+func NewBlockSource(client BlockResultClient, notifier BlockNotifier, timeout time.Duration) BlockSource {
+	getClient := func() (BlockResultClient, error) {
+		return client, nil
+	}
+
+	return NewBlockSourceWithDialOptions(getClient, notifier, log.NewNopLogger(), Timeout(timeout))
+}
+
+// NewBlockSourceWithDialOptions returns a new BlockSource instance with dial options
+func NewBlockSourceWithDialOptions(getClient BlockResultClientFactory, notifier BlockNotifier, logger log.Logger, options ...DialOption) BlockSource {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
