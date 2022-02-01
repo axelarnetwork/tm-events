@@ -660,7 +660,7 @@ func ctxWithTimeout(ctx context.Context, timeout time.Duration) (context.Context
 	return context.WithTimeout(ctx, timeout)
 }
 
-// BlockClientAdapter adapts a Tendermint client factory to a BlockClientFactory
+// BlockClientAdapter adapts a Tendermint ClientFactory to a BlockClientFactory
 func BlockClientAdapter(f ClientFactory) BlockClientFactory {
 	return func() (BlockClient, error) {
 		c, err := f()
@@ -672,7 +672,7 @@ func BlockClientAdapter(f ClientFactory) BlockClientFactory {
 	}
 }
 
-// BlockResultClientAdapter adapts a Tendermint client factory  to a BlockResultClientFactory
+// BlockResultClientAdapter adapts a Tendermint ClientFactory  to a BlockResultClientFactory
 func BlockResultClientAdapter(f ClientFactory) BlockResultClientFactory {
 	return func() (BlockResultClient, error) {
 		return f()
