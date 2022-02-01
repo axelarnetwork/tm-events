@@ -649,7 +649,7 @@ func ctxWithTimeout(ctx context.Context, timeout time.Duration) (context.Context
 func ToBlockClientFactory(f ClientFactory) BlockClientFactory {
 	return func() (BlockClient, error) {
 		c, err := f()
-		if err == nil {
+		if err != nil {
 			return nil, err
 		}
 
