@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	tmclient "github.com/tendermint/tendermint/rpc/client"
-
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
+	tmclient "github.com/tendermint/tendermint/rpc/client"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tm "github.com/tendermint/tendermint/types"
 
@@ -362,7 +361,7 @@ func (b *Notifier) Done() <-chan struct{} {
 // NewBlockNotifier maintains compatibility with vald
 // Deprecated: use NewBlockNotifierWithClientFactory instead
 func NewBlockNotifier(client BlockClient, logger log.Logger, options ...DialOption) *Notifier {
-	return NewBlockNotifierWithClientFactory(blockClientFactoryAdapter{client}, logger, options...)
+	return NewBlockNotifierWithClientFactory(BlockClientFactoryAdapter2{client}, logger, options...)
 }
 
 // NewBlockNotifierWithClientFactory returns a new BlockNotifier instance which uses a factory function to fetch
@@ -522,7 +521,7 @@ func NewBlockSource(client BlockResultClient, notifier BlockNotifier, timeout ..
 		t = timeout
 	}
 
-	return NewBlockSourceWithClientFactory(blockResultsClientFactoryAdapter{client: client}, notifier, log.NewNopLogger(), Timeout(t))
+	return NewBlockSourceWithClientFactory(BlockResultsClientFactoryAdapter{Client: client}, notifier, log.NewNopLogger(), Timeout(t))
 }
 
 // NewBlockSourceWithClientFactory returns a new BlockSource instance which uses a factory function to fetch
@@ -631,19 +630,29 @@ func ctxWithTimeout(ctx context.Context, timeout time.Duration) (context.Context
 	return context.WithTimeout(ctx, timeout)
 }
 
-// BlockClientFactoryAdapter adapts a Tendermint ClientFactory to a BlockClientFactory
-type BlockClientFactoryAdapter struct{ f ClientFactory }
+// BlockClientFactoryAdapter1 adapts a Tendermint ClientFactory to a BlockClientFactory
+type BlockClientFactoryAdapter1 struct{ Factory ClientFactory }
 
 // Create implements the BlockClientFactory interface
-func (a BlockClientFactoryAdapter) Create() (BlockClient, error) {
-	c, err := a.f.Create()
+func (a BlockClientFactoryAdapter1) Create() (BlockClient, error) {
+	c, err := a.Factory.Create()
 	return NewBlockClient(c), err
 }
 
-type blockResultsClientFactoryAdapter struct{ client BlockResultClient }
+// BlockClientFactoryAdapter2 adapts a Tendermint BlockClient to a BlockClientFactory
+type BlockClientFactoryAdapter2 struct{ Client BlockClient }
 
-func (a blockResultsClientFactoryAdapter) Create() (BlockResultClient, error) {
-	return a.client, nil
+// Create implements the BlockClientFactory interface
+func (a BlockClientFactoryAdapter2) Create() (BlockClient, error) {
+	return a.Client, nil
+}
+
+// BlockResultsClientFactoryAdapter adapts a Tendermint BlockResultClient to a BlockResultClientFactory
+type BlockResultsClientFactoryAdapter struct{ Client BlockResultClient }
+
+// Create implements the BlockResultClientFactory interface
+func (a BlockResultsClientFactoryAdapter) Create() (BlockResultClient, error) {
+	return a.Client, nil
 }
 
 type subscriptionClientFactoryAdapter struct{ f BlockClientFactory }
@@ -656,10 +665,4 @@ type blockHeightClientFactoryAdapter struct{ f BlockClientFactory }
 
 func (a blockHeightClientFactoryAdapter) Create() (BlockHeightClient, error) {
 	return a.f.Create()
-}
-
-type blockClientFactoryAdapter struct{ client BlockClient }
-
-func (b blockClientFactoryAdapter) Create() (BlockClient, error) {
-	return b.client, nil
 }
