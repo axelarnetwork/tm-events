@@ -3,8 +3,9 @@ package events
 import (
 	"context"
 	"fmt"
-	tmclient "github.com/tendermint/tendermint/rpc/client"
 	"time"
+
+	tmclient "github.com/tendermint/tendermint/rpc/client"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/tendermint/tendermint/libs/log"
@@ -176,33 +177,19 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 	return blocks, errChan
 }
 
-func (b *eventblockNotifier) connectNewClient() error {
-	var err error
-	b.client, err = b.getClient()
-	return err
-}
-
 func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.ResultEvent, error) {
-
-	i := 0 // attempt count
-
-	// if the client connection or subscription setup fails then retry
-	trySubscribe := func() (<-chan coretypes.ResultEvent, error) {
+	backOff := utils.LinearBackOff(b.backOff)
+	for i := 0; i <= b.retries; i++ {
 		if b.client == nil || i > 0 {
-			if err := b.connectNewClient(); err != nil {
+			var err error
+			if b.client, err = b.getClient(); err != nil {
 				return nil, err
 			}
 		}
 
 		ctx, cancel := ctxWithTimeout(ctx, b.timeout)
-		defer cancel()
-
-		return b.client.Subscribe(ctx, "", b.query, WebsocketQueueSize)
-	}
-
-	backOff := utils.ExponentialBackOff(b.backOff)
-	for ; i <= b.retries; i++ {
-		eventChan, err := trySubscribe()
+		eventChan, err := b.client.Subscribe(ctx, "", b.query, WebsocketQueueSize)
+		cancel()
 		if err == nil {
 			b.logger.Debug(fmt.Sprintf("subscribed to query \"%s\"", b.query))
 			return eventChan, nil
