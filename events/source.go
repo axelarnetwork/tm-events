@@ -634,16 +634,10 @@ type BlockClientFactoryAdapter struct{ f ClientFactory }
 // Create implements the BlockClientFactory interface
 func (a BlockClientFactoryAdapter) Create() (BlockClient, error) {
 	c, err := a.f.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	return NewBlockClient(c), nil
+	return NewBlockClient(c), err
 }
 
-type blockResultsClientFactoryAdapter struct {
-	client BlockResultClient
-}
+type blockResultsClientFactoryAdapter struct{ client BlockResultClient }
 
 func (a blockResultsClientFactoryAdapter) Create() (BlockResultClient, error) {
 	return a.client, nil
@@ -661,9 +655,7 @@ func (a blockHeightClientFactoryAdapter) Create() (BlockHeightClient, error) {
 	return a.f.Create()
 }
 
-type blockClientFactoryAdapter struct {
-	client BlockClient
-}
+type blockClientFactoryAdapter struct{ client BlockClient }
 
 func (b blockClientFactoryAdapter) Create() (BlockClient, error) {
 	return b.client, nil
