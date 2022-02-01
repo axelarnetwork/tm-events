@@ -308,7 +308,7 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 		return q.client.LatestBlockHeight(ctx)
 	}
 
-	backOff := utils.ExponentialBackOff(q.backOff)
+	backOff := utils.LinearBackOff(q.backOff)
 	for ; i <= q.retries; i++ {
 		latestBlockHeight, err := tryQuery()
 		if err == nil {
@@ -627,7 +627,7 @@ func (b *blockSource) fetchBlockResults(height *int64) (*coretypes.ResultBlockRe
 		return b.client.BlockResults(ctx, height)
 	}
 
-	backOff := utils.ExponentialBackOff(b.backOff)
+	backOff := utils.LinearBackOff(b.backOff)
 	for ; i <= b.retries; i++ {
 		res, err := trySubscribe()
 		if err == nil {
