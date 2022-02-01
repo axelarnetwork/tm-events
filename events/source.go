@@ -193,7 +193,8 @@ func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.Re
 		if b.client == nil || i > 0 {
 			var err error
 			if b.client, err = b.clientFactory.Create(); err != nil {
-				return nil, err
+				b.logger.Debug(sdkerrors.Wrapf(err, "failed to create a client, attempt %d", i+1).Error())
+				continue
 			}
 		}
 
@@ -303,7 +304,8 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 		if q.client == nil || i > 0 {
 			var err error
 			if q.client, err = q.clientFactory.Create(); err != nil {
-				return 0, err
+				q.logger.Debug(sdkerrors.Wrapf(err, "failed to create a client, attempt %d", i+1).Error())
+				continue
 			}
 		}
 
@@ -603,7 +605,8 @@ func (b *blockSource) fetchBlockResults(height *int64) (*coretypes.ResultBlockRe
 		if b.client == nil || i > 0 {
 			var err error
 			if b.client, err = b.clientFactory.Create(); err != nil {
-				return nil, err
+				b.logger.Debug(sdkerrors.Wrapf(err, "failed to create a client, attempt %d", i+1).Error())
+				continue
 			}
 		}
 
