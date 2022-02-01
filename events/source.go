@@ -514,12 +514,17 @@ type BlockResultClient interface {
 
 // NewBlockSource returns a new BlockSource instance
 // NewBlockSource maintains compatibility with vald
-func NewBlockSource(client BlockResultClient, notifier BlockNotifier, timeout time.Duration) BlockSource {
+func NewBlockSource(client BlockResultClient, notifier BlockNotifier, timeout ...time.Duration) BlockSource {
 	getClient := func() (BlockResultClient, error) {
 		return client, nil
 	}
 
-	return NewBlockSourceWithDialOptions(getClient, notifier, log.NewNopLogger(), Timeout(timeout))
+	var t time.Duration
+	for _, timeout := range timeout {
+		t = timeout
+	}
+
+	return NewBlockSourceWithDialOptions(getClient, notifier, log.NewNopLogger(), Timeout(t))
 }
 
 // NewBlockSourceWithDialOptions returns a new BlockSource instance with dial options
