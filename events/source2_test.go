@@ -50,18 +50,6 @@ func (t *testEnv) Context() error {
 	return nil
 }
 
-func (t *testEnv) getBlockClient() events.BlockClientFactory {
-	return func() (events.BlockClient, error) {
-		return t.notifierClient, nil
-	}
-}
-
-func (t *testEnv) getResultClient() events.BlockResultClientFactory {
-	return func() (events.BlockResultClient, error) {
-		return t.resultsClient, nil
-	}
-}
-
 func (t *testEnv) BlockNotifierStartingAtBlock(start int64) error {
 	t.notifier = events.NewBlockNotifier(t.notifierClient, log.TestingLogger(),
 		events.Timeout(1*time.Millisecond), events.Retries(1), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
