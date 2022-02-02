@@ -672,7 +672,10 @@ type BlockClientFactoryAdapter1 struct{ Factory ClientFactory }
 // Create implements the BlockClientFactory interface
 func (a BlockClientFactoryAdapter1) Create() (BlockClient, error) {
 	c, err := a.Factory.Create()
-	return NewBlockClient(c), err
+	if err != nil {
+		return nil, err
+	}
+	return NewBlockClient(c), nil
 }
 
 // BlockClientFactoryAdapter2 adapts a Tendermint BlockClient to a BlockClientFactory
