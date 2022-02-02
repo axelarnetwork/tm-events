@@ -195,6 +195,11 @@ func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.Re
 				b.logger.Debug(sdkerrors.Wrapf(err, "failed to create a client, attempt %d", i+1).Error())
 				continue
 			}
+
+			if b.client == nil {
+				b.logger.Debug(fmt.Sprintf("client is nil, attempt %d\"", i+1))
+				continue
+			}
 		}
 
 		ctx, cancel := ctxWithTimeout(ctx, b.timeout)
@@ -373,7 +378,7 @@ func NewBlockNotifierWithClientFactory(clientFactory BlockClientFactory, logger 
 		opts = option.apply(opts)
 	}
 
-	logger = logger.With("listener", "blocks")
+	logger = logger.With("listener", "block notifier")
 	return &Notifier{
 		clientFactory:  clientFactory,
 		logger:         logger,
@@ -539,7 +544,7 @@ func NewBlockSourceWithClientFactory(clientFactory BlockResultClientFactory, not
 		retries:       opts.retries,
 		backOff:       opts.backOff,
 		timeout:       opts.timeout,
-		logger:        logger,
+		logger:        logger.With("listener", "block results"),
 	}
 }
 
@@ -605,6 +610,10 @@ func (b *blockSource) fetchBlockResults(height *int64) (*coretypes.ResultBlockRe
 			var err error
 			if b.client, err = b.clientFactory.Create(); err != nil {
 				b.logger.Debug(sdkerrors.Wrapf(err, "failed to create a client, attempt %d", i+1).Error())
+				continue
+			}
+			if b.client == nil {
+				b.logger.Debug(fmt.Sprintf("client is nil, attempt %d\"", i+1))
 				continue
 			}
 		}
