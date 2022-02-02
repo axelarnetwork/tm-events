@@ -190,6 +190,13 @@ func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.Re
 	backOff := utils.LinearBackOff(b.backOff)
 	for i := 0; i <= b.retries; i++ {
 		if b.client == nil || i > 0 {
+
+			if b.client != nil {
+				b.logger.Debug("stopping current client")
+				b.client.Stop()
+			}
+
+			b.logger.Debug("creating new client")
 			var err error
 			if b.client, err = b.clientFactory.Create(); err != nil {
 				b.logger.Debug(sdkerrors.Wrapf(err, "failed to create a client, attempt %d", i+1).Error())
@@ -306,6 +313,13 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 	backOff := utils.LinearBackOff(q.backOff)
 	for i := 0; i <= q.retries; i++ {
 		if q.client == nil || i > 0 {
+			if q.client != nil {
+				q.logger.Debug("stopping current client")
+				q.client.Stop()
+			}
+
+			q.logger.Debug("creating new client")
+
 			var err error
 			if q.client, err = q.clientFactory.Create(); err != nil {
 				q.logger.Debug(sdkerrors.Wrapf(err, "failed to create a client, attempt %d", i+1).Error())
@@ -329,12 +343,14 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 // BlockHeightClient can query the latest block height
 type BlockHeightClient interface {
 	LatestBlockHeight(ctx context.Context) (int64, error)
+	Stop() error
 }
 
 // SubscriptionClient subscribes to and unsubscribes from Tendermint events
 type SubscriptionClient interface {
 	Subscribe(ctx context.Context, subscriber, query string, outCapacity ...int) (out <-chan coretypes.ResultEvent, err error)
 	Unsubscribe(ctx context.Context, subscriber, query string) error
+	Stop() error
 }
 
 // BlockClient is both BlockHeightClient and SubscriptionClient
@@ -397,10 +413,13 @@ func (b *Notifier) StartingAt(block int64) *Notifier {
 }
 
 func (b *Notifier) getLatestBlockHeight() (int64, error) {
+	b.logger.Debug("creating new client")
 	client, err := b.clientFactory.Create()
 	if err != nil {
 		return 0, err
 	}
+	defer client.Stop()
+	defer b.logger.Debug("stopping client")
 
 	ctx, cancel := ctxWithTimeout(context.Background(), b.timeout)
 	defer cancel()
@@ -514,6 +533,7 @@ type blockSource struct {
 // BlockResultClient can query for the block results of a specific block
 type BlockResultClient interface {
 	BlockResults(ctx context.Context, height *int64) (*coretypes.ResultBlockResults, error)
+	Stop() error
 }
 
 // NewBlockSource returns a new BlockSource instance
@@ -607,6 +627,13 @@ func (b *blockSource) fetchBlockResults(height *int64) (*coretypes.ResultBlockRe
 	backOff := utils.LinearBackOff(b.backOff)
 	for i := 0; i <= b.retries; i++ {
 		if b.client == nil || i > 0 {
+			if b.client != nil {
+				b.logger.Debug("stopping current client")
+				b.client.Stop()
+			}
+
+			b.logger.Debug("creating new client")
+
 			var err error
 			if b.client, err = b.clientFactory.Create(); err != nil {
 				b.logger.Debug(sdkerrors.Wrapf(err, "failed to create a client, attempt %d", i+1).Error())
@@ -645,7 +672,10 @@ type BlockClientFactoryAdapter1 struct{ Factory ClientFactory }
 // Create implements the BlockClientFactory interface
 func (a BlockClientFactoryAdapter1) Create() (BlockClient, error) {
 	c, err := a.Factory.Create()
-	return NewBlockClient(c), err
+	if err != nil {
+		return nil, err
+	}
+	return NewBlockClient(c), nil
 }
 
 // BlockClientFactoryAdapter2 adapts a Tendermint BlockClient to a BlockClientFactory

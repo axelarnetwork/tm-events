@@ -260,6 +260,7 @@ func NewClientMock() *clientMock {
 			subscriptionCtx, subscriptionCancel = context.WithCancel(context.Background())
 			return nil
 		},
+		StopFunc: func() error { return nil },
 	}
 
 	client.BlockClientMock = blockClientMock
