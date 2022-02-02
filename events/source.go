@@ -343,14 +343,14 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 // BlockHeightClient can query the latest block height
 type BlockHeightClient interface {
 	LatestBlockHeight(ctx context.Context) (int64, error)
-	Stop()
+	Stop() error
 }
 
 // SubscriptionClient subscribes to and unsubscribes from Tendermint events
 type SubscriptionClient interface {
 	Subscribe(ctx context.Context, subscriber, query string, outCapacity ...int) (out <-chan coretypes.ResultEvent, err error)
 	Unsubscribe(ctx context.Context, subscriber, query string) error
-	Stop()
+	Stop() error
 }
 
 // BlockClient is both BlockHeightClient and SubscriptionClient
@@ -533,7 +533,7 @@ type blockSource struct {
 // BlockResultClient can query for the block results of a specific block
 type BlockResultClient interface {
 	BlockResults(ctx context.Context, height *int64) (*coretypes.ResultBlockResults, error)
-	Stop()
+	Stop() error
 }
 
 // NewBlockSource returns a new BlockSource instance
