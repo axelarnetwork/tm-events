@@ -83,18 +83,17 @@ func CmdWaitEvent(busPtr **events.Bus, logger tmlog.Logger) *cobra.Command {
 			logger.Debug("waiting for event", logKeyVals...)
 			sub := events.MustSubscribeWithAttributes(eventBus, eventType, module, attributes...)
 			once := sync.Once{}
-			job := events.Consume(sub, func(e events.Event) error {
+			job := events.Consume(sub, func(e events.Event) {
 				once.Do(func() {
 					logger.Debug(fmt.Sprintf("found event %v", e), logKeyVals...)
 					shutdownBus()
 					<-eventBus.Done()
 				})
-				return nil
 			})
-			mgr := jobs.NewMgr(func(err error) { logger.Error(err.Error()) })
+			mgr := jobs.NewMgr(context.Background())
 			mgr.AddJob(job)
 
-			mgr.Wait()
+			<-mgr.Done()
 
 			return nil
 		},
@@ -116,19 +115,18 @@ func CmdWaitQuery(busPtr **events.Bus, logger tmlog.Logger) *cobra.Command {
 			logger.Debug(fmt.Sprintf("waiting for event matching query '%s'", q.TMQuery.String()))
 			sub := events.MustSubscribe(eventBus, q, func(err error) error { return sdkerrors.Wrap(err, "query subscription failed") })
 			once := sync.Once{}
-			job := events.Consume(sub, func(e events.Event) error {
+			job := events.Consume(sub, func(e events.Event) {
 				once.Do(func() {
 					logger.Debug(fmt.Sprintf("found event matching query '%s': %v", q.TMQuery.String(), e))
 					shutdownBus()
 					<-eventBus.Done()
 				})
-				return nil
 			})
 
-			mgr := jobs.NewMgr(func(err error) { logger.Error(err.Error()) })
+			mgr := jobs.NewMgr(context.Background())
 			mgr.AddJob(job)
 
-			mgr.Wait()
+			<-mgr.Done()
 
 			return nil
 		},

@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -47,19 +48,22 @@ func (s FilteredSubscriber) Events() <-chan Event {
 
 // Consume processes all events from the given subscriber with the given function.
 // Do not consume the same subscriber multiple times.
-func Consume(subscriber FilteredSubscriber, process func(event Event) error) jobs.Job {
-	return func(errChan chan<- error) {
+func Consume(subscriber FilteredSubscriber, process func(event Event)) jobs.Job {
+	return func(ctx context.Context) error {
+		errs := make(chan error, 1)
 		for {
 			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case err := <-errs:
+				return err
 			case e := <-subscriber.Events():
 				go func() {
-					defer recovery(errChan)
-					if err := process(e); err != nil {
-						errChan <- err
-					}
+					defer recovery(errs)
+					process(e)
 				}()
 			case <-subscriber.Done():
-				return
+				return nil
 			}
 		}
 	}
