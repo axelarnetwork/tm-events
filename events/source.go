@@ -629,7 +629,12 @@ func (b *blockSource) fetchBlockResults(height *int64) (*coretypes.ResultBlockRe
 		if b.client == nil || i > 0 {
 			if b.client != nil {
 				b.logger.Debug("stopping current client")
-				b.client.Stop()
+				err := b.client.Stop()
+				if err != nil {
+					b.logger.Debug(sdkerrors.Wrapf(err, "failed to stop the old client, attempt %d", i+1).Error())
+					continue
+				}
+
 			}
 
 			b.logger.Debug("creating new client")
@@ -650,10 +655,10 @@ func (b *blockSource) fetchBlockResults(height *int64) (*coretypes.ResultBlockRe
 		res, err := b.client.BlockResults(ctx, height)
 		cancel()
 		if err == nil {
-			b.logger.Debug(fmt.Sprintf("fetched result for block height %d", height))
+			b.logger.Debug(fmt.Sprintf("fetched result for block height %d", *height))
 			return res, nil
 		}
-		b.logger.Debug(sdkerrors.Wrapf(err, "failed to result for block height %d, attempt %d", height, i+1).Error())
+		b.logger.Debug(sdkerrors.Wrapf(err, "failed to result for block height %d, attempt %d", *height, i+1).Error())
 		time.Sleep(backOff(i))
 	}
 	return nil, fmt.Errorf("aborting block result fetching after %d attemts ", b.retries+1)
