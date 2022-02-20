@@ -354,6 +354,7 @@ func (b *Notifier) BlockHeights(ctx context.Context) (<-chan int64, <-chan error
 
 	// if no start block has been set explicitly try to fetch the latest block height
 	if b.start == 0 {
+		b.start = -1
 		height, err := b.getLatestBlockHeight()
 		if err == nil {
 			b.start = height
