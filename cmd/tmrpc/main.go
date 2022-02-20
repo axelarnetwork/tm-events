@@ -6,16 +6,16 @@ import (
 	"os"
 	"sync"
 
+	"github.com/axelarnetwork/tm-events/events"
+	"github.com/axelarnetwork/tm-events/pubsub"
+	"github.com/axelarnetwork/tm-events/tendermint"
 	"github.com/axelarnetwork/utils/jobs"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/spf13/cobra"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
-
-	"github.com/axelarnetwork/tm-events/events"
-	"github.com/axelarnetwork/tm-events/pubsub"
-	"github.com/axelarnetwork/tm-events/tendermint"
+	"github.com/tendermint/tendermint/rpc/client"
 )
 
 func main() {
@@ -31,13 +31,15 @@ func main() {
 		Short:            "Event listener",
 		TraverseChildren: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			cl, err := tendermint.StartClient(rpcURL, endpoint, logger)
-			if err != nil {
-				return sdkerrors.Wrap(err, "failed to create tendermint client")
-			}
-
-			notifier := events.NewBlockNotifier(events.NewBlockClient(cl), logger)
-			blockSource := events.NewBlockSource(cl, notifier)
+			resettableClient := tendermint.NewRobustClient(func() (client.Client, error) {
+				cl, err := tendermint.StartClient(rpcURL, endpoint)
+				if err == nil {
+					logger.Info("connected tendermint client to " + rpcURL)
+				}
+				return cl, err
+			})
+			notifier := events.NewBlockNotifier(resettableClient, logger)
+			blockSource := events.NewBlockSource(resettableClient, notifier, logger)
 			eventBus = events.NewEventBus(blockSource, pubsub.NewBus, logger)
 			return nil
 		},
