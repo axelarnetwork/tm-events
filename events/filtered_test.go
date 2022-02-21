@@ -1,9 +1,10 @@
 package events
 
 import (
-	"github.com/axelarnetwork/utils/test/rand"
 	"strconv"
 	"testing"
+
+	"github.com/axelarnetwork/utils/test/rand"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +29,7 @@ func TestQueryBuilder(t *testing.T) {
 		module := "testModule"
 		attributeValues := []string{}
 		maxCases := int64(20)
-		for i := 0; i < int(rand.I64Between(1, maxCases)); i++ {
+		for i := 0; i < int(rand.I64Between(4, maxCases)); i++ {
 			attributeValues = append(attributeValues, "attrValue"+strconv.Itoa(i))
 		}
 

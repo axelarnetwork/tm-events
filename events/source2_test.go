@@ -228,7 +228,7 @@ func (t *testEnv) ResultsClient() error {
 }
 
 func (t *testEnv) BlockResultSource() error {
-	t.blockSource = events.NewBlockSource(t.resultsClient, t.notifierMock, time.Second)
+	t.blockSource = events.NewBlockSource(t.resultsClient, t.notifierMock, log.TestingLogger(), events.Timeout(time.Second))
 	return nil
 }
 
