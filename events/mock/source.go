@@ -124,9 +124,6 @@ var _ events.BlockClient = &BlockClientMock{}
 // 			LatestBlockHeightFunc: func(ctx context.Context) (int64, error) {
 // 				panic("mock out the LatestBlockHeight method")
 // 			},
-// 			StopFunc: func() error {
-// 				panic("mock out the Stop method")
-// 			},
 // 			SubscribeFunc: func(ctx context.Context, subscriber string, query string, outCapacity ...int) (<-chan coretypes.ResultEvent, error) {
 // 				panic("mock out the Subscribe method")
 // 			},
@@ -143,9 +140,6 @@ type BlockClientMock struct {
 	// LatestBlockHeightFunc mocks the LatestBlockHeight method.
 	LatestBlockHeightFunc func(ctx context.Context) (int64, error)
 
-	// StopFunc mocks the Stop method.
-	StopFunc func() error
-
 	// SubscribeFunc mocks the Subscribe method.
 	SubscribeFunc func(ctx context.Context, subscriber string, query string, outCapacity ...int) (<-chan coretypes.ResultEvent, error)
 
@@ -158,9 +152,6 @@ type BlockClientMock struct {
 		LatestBlockHeight []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-		}
-		// Stop holds details about calls to the Stop method.
-		Stop []struct {
 		}
 		// Subscribe holds details about calls to the Subscribe method.
 		Subscribe []struct {
@@ -184,7 +175,6 @@ type BlockClientMock struct {
 		}
 	}
 	lockLatestBlockHeight sync.RWMutex
-	lockStop              sync.RWMutex
 	lockSubscribe         sync.RWMutex
 	lockUnsubscribe       sync.RWMutex
 }
@@ -217,32 +207,6 @@ func (mock *BlockClientMock) LatestBlockHeightCalls() []struct {
 	mock.lockLatestBlockHeight.RLock()
 	calls = mock.calls.LatestBlockHeight
 	mock.lockLatestBlockHeight.RUnlock()
-	return calls
-}
-
-// Stop calls StopFunc.
-func (mock *BlockClientMock) Stop() error {
-	if mock.StopFunc == nil {
-		panic("BlockClientMock.StopFunc: method is nil but BlockClient.Stop was just called")
-	}
-	callInfo := struct {
-	}{}
-	mock.lockStop.Lock()
-	mock.calls.Stop = append(mock.calls.Stop, callInfo)
-	mock.lockStop.Unlock()
-	return mock.StopFunc()
-}
-
-// StopCalls gets all the calls that were made to Stop.
-// Check the length with:
-//     len(mockedBlockClient.StopCalls())
-func (mock *BlockClientMock) StopCalls() []struct {
-} {
-	var calls []struct {
-	}
-	mock.lockStop.RLock()
-	calls = mock.calls.Stop
-	mock.lockStop.RUnlock()
 	return calls
 }
 
@@ -341,9 +305,6 @@ var _ events.BlockResultClient = &BlockResultClientMock{}
 // 			BlockResultsFunc: func(ctx context.Context, height *int64) (*coretypes.ResultBlockResults, error) {
 // 				panic("mock out the BlockResults method")
 // 			},
-// 			StopFunc: func() error {
-// 				panic("mock out the Stop method")
-// 			},
 // 		}
 //
 // 		// use mockedBlockResultClient in code that requires events.BlockResultClient
@@ -354,9 +315,6 @@ type BlockResultClientMock struct {
 	// BlockResultsFunc mocks the BlockResults method.
 	BlockResultsFunc func(ctx context.Context, height *int64) (*coretypes.ResultBlockResults, error)
 
-	// StopFunc mocks the Stop method.
-	StopFunc func() error
-
 	// calls tracks calls to the methods.
 	calls struct {
 		// BlockResults holds details about calls to the BlockResults method.
@@ -366,12 +324,8 @@ type BlockResultClientMock struct {
 			// Height is the height argument value.
 			Height *int64
 		}
-		// Stop holds details about calls to the Stop method.
-		Stop []struct {
-		}
 	}
 	lockBlockResults sync.RWMutex
-	lockStop         sync.RWMutex
 }
 
 // BlockResults calls BlockResultsFunc.
@@ -406,32 +360,6 @@ func (mock *BlockResultClientMock) BlockResultsCalls() []struct {
 	mock.lockBlockResults.RLock()
 	calls = mock.calls.BlockResults
 	mock.lockBlockResults.RUnlock()
-	return calls
-}
-
-// Stop calls StopFunc.
-func (mock *BlockResultClientMock) Stop() error {
-	if mock.StopFunc == nil {
-		panic("BlockResultClientMock.StopFunc: method is nil but BlockResultClient.Stop was just called")
-	}
-	callInfo := struct {
-	}{}
-	mock.lockStop.Lock()
-	mock.calls.Stop = append(mock.calls.Stop, callInfo)
-	mock.lockStop.Unlock()
-	return mock.StopFunc()
-}
-
-// StopCalls gets all the calls that were made to Stop.
-// Check the length with:
-//     len(mockedBlockResultClient.StopCalls())
-func (mock *BlockResultClientMock) StopCalls() []struct {
-} {
-	var calls []struct {
-	}
-	mock.lockStop.RLock()
-	calls = mock.calls.Stop
-	mock.lockStop.RUnlock()
 	return calls
 }
 
