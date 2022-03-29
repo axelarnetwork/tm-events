@@ -6,16 +6,17 @@ import (
 	"os"
 	"sync"
 
-	"github.com/axelarnetwork/tm-events/events"
-	"github.com/axelarnetwork/tm-events/pubsub"
-	"github.com/axelarnetwork/tm-events/tendermint"
-	"github.com/axelarnetwork/utils/jobs"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/spf13/cobra"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
 	"github.com/tendermint/tendermint/rpc/client"
+
+	"github.com/axelarnetwork/tm-events/events"
+	"github.com/axelarnetwork/tm-events/pubsub"
+	"github.com/axelarnetwork/tm-events/tendermint"
+	"github.com/axelarnetwork/utils/jobs"
 )
 
 func main() {

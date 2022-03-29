@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/axelarnetwork/utils/jobs"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	tmpubsub "github.com/tendermint/tendermint/libs/pubsub"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
 	tm "github.com/tendermint/tendermint/types"
+
+	"github.com/axelarnetwork/utils/jobs"
 
 	"github.com/axelarnetwork/tm-events/pubsub"
 )

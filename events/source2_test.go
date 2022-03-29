@@ -16,7 +16,7 @@ import (
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tm "github.com/tendermint/tendermint/types"
 
-	"github.com/axelarnetwork/utils/test"
+	testutils "github.com/axelarnetwork/utils/test"
 	"github.com/axelarnetwork/utils/test/rand"
 
 	"github.com/axelarnetwork/tm-events/events"

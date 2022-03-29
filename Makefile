@@ -22,20 +22,22 @@ lint:
 
 # Run all the code generators in the project
 .PHONY: generate
-generate: prereqs
-	go generate -x ./...
+generate: go.sum prereqs goimports
+	go generate ./...
 
-.PHONY: prereqs
+.PHONY: goimports
+goimports:
+	@echo "running goimports"
+# exclude mocks and proto generated files
+	@goimports -l -local github.com/axelarnetwork/ . | grep -v .pb.go$ | grep -v mock | xargs goimports -local github.com/axelarnetwork/ -w
+
+# Install all generate prerequisites
+.Phony: prereqs
 prereqs:
-ifeq (which moq,)
-	go get -u github.com/matryer/moq
-endif
-ifeq (which mdformat,)
-	pip3 install mdformat
-endif
-ifeq (which protoc,)
-	@echo "Please install protoc for grpc (https://grpc.io/docs/languages/go/quickstart/)"
-endif
+	@which goimports &>/dev/null	||	go install golang.org/x/tools/cmd/goimports
+	@which moq &>/dev/null			||	go install github.com/matryer/moq
+	@which mdformat &>/dev/null 	||	pip3 install mdformat
+	@which protoc &>/dev/null 		|| 	echo "Please install protoc for grpc (https://grpc.io/docs/languages/go/quickstart/)"
 
 # Prepare go deps, as well as zeromq
 .PHONY: deps
