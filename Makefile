@@ -29,7 +29,7 @@ generate: go.sum prereqs goimports
 goimports:
 	@echo "running goimports"
 # exclude mocks and proto generated files
-	@goimports -l -local github.com/axelarnetwork/ . | grep -v .pb.go$ | grep -v mock | xargs goimports -local github.com/axelarnetwork/ -w
+	@goimports -l -local github.com/axelarnetwork/ . | grep -v mock | xargs goimports -local github.com/axelarnetwork/ -w
 
 # Install all generate prerequisites
 .Phony: prereqs
@@ -37,7 +37,6 @@ prereqs:
 	@which goimports &>/dev/null	||	go install golang.org/x/tools/cmd/goimports
 	@which moq &>/dev/null			||	go install github.com/matryer/moq
 	@which mdformat &>/dev/null 	||	pip3 install mdformat
-	@which protoc &>/dev/null 		|| 	echo "Please install protoc for grpc (https://grpc.io/docs/languages/go/quickstart/)"
 
 # Prepare go deps, as well as zeromq
 .PHONY: deps
