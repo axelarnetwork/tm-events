@@ -11,6 +11,7 @@ import (
 
 	"github.com/axelarnetwork/tm-events/tendermint"
 	"github.com/axelarnetwork/tm-events/tendermint/mock"
+	. "github.com/axelarnetwork/utils/test"
 	"github.com/axelarnetwork/utils/test/rand"
 )
 
