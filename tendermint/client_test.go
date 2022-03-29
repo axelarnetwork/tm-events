@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/tendermint/tendermint/rpc/client"
+	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+
 	"github.com/axelarnetwork/tm-events/tendermint"
 	"github.com/axelarnetwork/tm-events/tendermint/mock"
 	. "github.com/axelarnetwork/utils/test"
 	"github.com/axelarnetwork/utils/test/rand"
-	"github.com/stretchr/testify/assert"
-	"github.com/tendermint/tendermint/rpc/client"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 func TestResettableClient(t *testing.T) {
