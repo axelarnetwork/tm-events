@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/rpc/client"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
@@ -25,14 +26,14 @@ func TestResettableClient(t *testing.T) {
 			untilFailure := rand.I64Between(1, 100)
 			calls := int64(0)
 			return &mock.ClientMock{
-				StatusFunc: func(context.Context) (*coretypes.ResultStatus, error) {
+				ABCIInfoFunc: func(context.Context) (*coretypes.ResultABCIInfo, error) {
 					calls++
 					if calls > untilFailure {
 						return nil, fmt.Errorf("post failed: some connection error")
 					}
 
-					return &coretypes.ResultStatus{
-						SyncInfo: coretypes.SyncInfo{LatestBlockHeight: expectedBlockHeight},
+					return &coretypes.ResultABCIInfo{
+						Response: types.ResponseInfo{LastBlockHeight: expectedBlockHeight},
 					}, nil
 				},
 				StopFunc: func() error { return nil },
