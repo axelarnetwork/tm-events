@@ -11,7 +11,7 @@ import (
 
 // Consume processes all events from the given subscriber with the given function.
 // Do not consume the same subscriber multiple times.
-func Consume(subscriber <-chan Event, process func(event Event)) jobs.Job {
+func Consume[T any](subscriber <-chan T, process func(event T)) jobs.Job {
 	return func(ctx context.Context) error {
 		errs := make(chan error, 1)
 		for {
@@ -37,11 +37,6 @@ func recovery(errChan chan<- error) {
 	if r := recover(); r != nil {
 		errChan <- fmt.Errorf("job panicked:%s", r)
 	}
-}
-
-// OnlyBlockHeight wraps a function that only depends on block height and makes it compatible with the Consume function
-func OnlyBlockHeight(f func(int64) error) func(event Event) error {
-	return func(e Event) error { return f(e.Height) }
 }
 
 // AttributeValueSet represents a set of possible values for an Attribute key
