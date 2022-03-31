@@ -8,9 +8,11 @@ require (
 	github.com/cosmos/cosmos-sdk v0.45.1
 	github.com/cucumber/godog v0.12.0
 	github.com/matryer/moq v0.2.7
+	github.com/smallnest/chanx v1.0.1-0.20211205150931-349643806662
 	github.com/spf13/cobra v1.3.0
 	github.com/stretchr/testify v1.7.1
 	github.com/tendermint/tendermint v0.34.16
+	golang.org/x/tools v0.1.10
 )
 
 require (

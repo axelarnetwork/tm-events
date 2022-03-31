@@ -18,11 +18,11 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Install golint
-        run: go install golang.org/x/lint/golint@latest
+      - name: Install revive
+        run: go install github.com/mgechev/revive@latest
 
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Golint
-        run: golint -set_exit_status ./...
+      - name: Linting
+        run: revive -set_exit_status ./...

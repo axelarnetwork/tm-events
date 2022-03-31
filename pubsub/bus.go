@@ -1,198 +1,118 @@
 package pubsub
 
 import (
+	"context"
 	"errors"
+	"sync"
 
-	"github.com/boz/go-lifecycle"
+	"github.com/smallnest/chanx"
 )
-
-//go:generate moq -pkg mock -out ./mock/bus.go  . Bus Subscriber
 
 // ErrNotRunning is the error with message "not running"
 var ErrNotRunning = errors.New("not running")
 
-// Event interface
-type Event interface{}
-
-// Bus is an async event bus that allows subscriptions to behave as a bus themselves.
-// When an event is published, it is sent to all subscribers asynchronously - a subscriber
-// cannot block other subscribers.
-type Bus interface {
-	Publish(Event) error
-	Subscribe() (Subscriber, error)
+// Bus provides a general purpose interface for message passing
+type Bus[T any] interface {
+	Publish(T) error
+	Subscribe(filter func(T) bool) <-chan T
 	Close()
 	Done() <-chan struct{}
 }
 
-// Subscriber emits cmd it sees on the channel returned by Events().
-// A Clone() of a subscriber will emit all cmd that have not been emitted
-// from the cloned subscriber.  This is important so that cmd are not missed
-// when adding subscribers for sub-components
-type Subscriber interface {
-	Events() <-chan Event
-	Clone() (Subscriber, error)
-	Close()
-	Done() <-chan struct{}
-}
-
-type bus struct {
-	subscriptions map[*bus]bool
-
-	evbuf []Event
-
-	eventch  chan Event
-	parentch chan *bus
-
-	pubch   chan Event
-	subch   chan chan<- Subscriber
-	unsubch chan *bus
-
-	lc lifecycle.Lifecycle
+type bus[T any] struct {
+	subMutex      *sync.Mutex
+	subscriptions []*subscriber[T]
+	buffer        *chanx.UnboundedChan[T]
+	bufferCap     int // capacity of the in and out channels of buffer
+	running       context.Context
+	closing       context.CancelFunc
+	cleanedUp     chan struct{}
+	once          *sync.Once
 }
 
 // NewBus runs a new bus and returns bus details
-func NewBus() Bus {
-	bus := &bus{
-		subscriptions: make(map[*bus]bool),
-		pubch:         make(chan Event),
-		subch:         make(chan chan<- Subscriber),
-		unsubch:       make(chan *bus),
-		lc:            lifecycle.New(),
+func NewBus[T any]() Bus[T] {
+	running, closing := context.WithCancel(context.Background())
+	bufferCap := 1000
+	b := &bus[T]{
+		bufferCap: bufferCap,
+		buffer:    chanx.NewUnboundedChan[T](bufferCap),
+		running:   running,
+		closing:   closing,
+		subMutex:  &sync.Mutex{},
+		cleanedUp: make(chan struct{}),
+		once:      &sync.Once{},
 	}
 
-	go bus.run()
+	go b.run()
 
-	return bus
+	return b
 }
 
-func (b *bus) Publish(ev Event) error {
+func (b *bus[T]) Publish(item T) error {
 	select {
-	case b.pubch <- ev:
-		return nil
-	case <-b.lc.ShuttingDown():
+	case <-b.running.Done():
 		return ErrNotRunning
+	default:
+		b.buffer.In <- item
+		return nil
 	}
 }
 
-func (b *bus) Subscribe() (Subscriber, error) {
-	ch := make(chan Subscriber, 1)
+func (b *bus[T]) Subscribe(filter func(T) bool) <-chan T {
+	// the mutex needs to be locked before the select, otherwise it could happen that we wait for the lock in the default case
+	// and in the meantime the running context gets cancelled. This would lead to unpredictable interplay between Subscribe() and run()
+	b.subMutex.Lock()
+	defer b.subMutex.Unlock()
 
 	select {
-	case b.subch <- ch:
-		return <-ch, nil
-	case <-b.lc.ShuttingDown():
-		return nil, ErrNotRunning
-	}
-}
-
-func (b *bus) Clone() (Subscriber, error) {
-	return b.Subscribe()
-}
-
-func (b *bus) Events() <-chan Event {
-	return b.eventch
-}
-
-func (b *bus) Close() {
-	b.lc.Shutdown(nil)
-}
-
-func (b *bus) Done() <-chan struct{} {
-	return b.lc.Done()
-}
-
-func (b *bus) run() {
-	defer b.lc.ShutdownCompleted()
-
-	var outch chan<- Event
-	var curev Event
-
-loop:
-	for {
-
-		if b.eventch != nil && len(b.evbuf) > 0 {
-			// If we're emitting cmd (Subscriber mode) and there
-			// are cmd to emit, set up the output channel and output
-			// event accordingly.
-			outch = b.eventch
-			curev = b.evbuf[0]
-		} else {
-			// otherwise block the output (sending to a nil channel always blocks)
-			outch = nil
+	case <-b.running.Done():
+		ch := make(chan T)
+		close(ch)
+		return ch
+	default:
+		subscription := &subscriber[T]{
+			filter: filter,
+			buffer: chanx.NewUnboundedChan[T](b.bufferCap),
 		}
+		b.subscriptions = append(b.subscriptions, subscription)
 
-		select {
-		case err := <-b.lc.ShutdownRequest():
-			b.lc.ShutdownInitiated(err)
-			break loop
-
-		case outch <- curev:
-			// Event was emitted. Shrink current event buffer.
-			b.evbuf = b.evbuf[1:]
-
-		case ev := <-b.pubch:
-			// publish event
-
-			// Buffer event.
-			if b.eventch != nil {
-				b.evbuf = append(b.evbuf, ev)
-			}
-
-			// Publish to children.
-			for sub := range b.subscriptions {
-				if err := sub.Publish(ev); err != nil && !errors.Is(err, ErrNotRunning) {
-					panic(err)
-				}
-			}
-
-		case ch := <-b.subch:
-			// new subscription
-
-			sub := newSubscriber(b)
-			b.subscriptions[sub] = true
-
-			ch <- sub
-
-		case sub := <-b.unsubch:
-			// subscription closed
-			delete(b.subscriptions, sub)
-		}
-	}
-
-	for sub := range b.subscriptions {
-		sub.lc.ShutdownAsync(nil)
-	}
-
-	for len(b.subscriptions) > 0 {
-		sub := <-b.unsubch
-		delete(b.subscriptions, sub)
-	}
-
-	if b.parentch != nil {
-		b.parentch <- b
+		return subscription.buffer.Out
 	}
 }
 
-func newSubscriber(parent *bus) *bus {
-	// Re-use bus struct, but populate output channel (eventch)
-	// to enable subscriber mode.
+func (b *bus[T]) Close() {
+	b.once.Do(func() {
+		b.closing()
+		close(b.buffer.In)
+	})
+}
 
-	evbuf := make([]Event, len(parent.evbuf))
-	copy(evbuf, parent.evbuf)
+func (b *bus[T]) Done() <-chan struct{} {
+	return b.cleanedUp
+}
 
-	sub := &bus{
-		eventch:  make(chan Event),
-		parentch: parent.unsubch,
-		evbuf:    evbuf,
-
-		subscriptions: make(map[*bus]bool),
-		pubch:         make(chan Event),
-		subch:         make(chan chan<- Subscriber),
-		unsubch:       make(chan *bus),
-		lc:            lifecycle.New(),
+func (b *bus[T]) run() {
+	for item := range b.buffer.Out {
+		b.subMutex.Lock()
+		for _, sub := range b.subscriptions {
+			if sub.filter(item) {
+				sub.buffer.In <- item
+			}
+		}
+		b.subMutex.Unlock()
 	}
 
-	go sub.run()
+	b.subMutex.Lock()
+	for _, sub := range b.subscriptions {
+		close(sub.buffer.In)
+	}
+	b.subMutex.Unlock()
 
-	return sub
+	close(b.cleanedUp)
+}
+
+type subscriber[T any] struct {
+	buffer *chanx.UnboundedChan[T]
+	filter func(T) bool
 }
