@@ -70,6 +70,7 @@ func (t *testEnv) ClientWithoutSubscription() error {
 
 func (t *testEnv) ClientWithStaleQuery() error {
 	t.notifierClient.LatestBlockHeightFunc = func(context.Context) (int64, error) { return 0, nil }
+	t.notifierClient.LatestNodeBlockHeightFunc = func(context.Context) (int64, error) { return 0, nil }
 	return nil
 }
 
@@ -82,6 +83,9 @@ func (t *testEnv) ClientSubscriptionFails() error {
 
 func (t *testEnv) ClientQueryFails() error {
 	t.notifierClient.LatestBlockHeightFunc = func(context.Context) (int64, error) {
+		return 0, fmt.Errorf("some error")
+	}
+	t.notifierClient.LatestNodeBlockHeightFunc = func(context.Context) (int64, error) {
 		return 0, fmt.Errorf("some error")
 	}
 	return nil

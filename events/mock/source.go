@@ -124,6 +124,9 @@ var _ events.BlockClient = &BlockClientMock{}
 // 			LatestBlockHeightFunc: func(ctx context.Context) (int64, error) {
 // 				panic("mock out the LatestBlockHeight method")
 // 			},
+// 			LatestNodeBlockHeightFunc: func(ctx context.Context) (int64, error) {
+// 				panic("mock out the LatestNodeBlockHeight method")
+// 			},
 // 			SubscribeFunc: func(ctx context.Context, subscriber string, query string, outCapacity ...int) (<-chan coretypes.ResultEvent, error) {
 // 				panic("mock out the Subscribe method")
 // 			},
@@ -140,6 +143,9 @@ type BlockClientMock struct {
 	// LatestBlockHeightFunc mocks the LatestBlockHeight method.
 	LatestBlockHeightFunc func(ctx context.Context) (int64, error)
 
+	// LatestNodeBlockHeightFunc mocks the LatestNodeBlockHeight method.
+	LatestNodeBlockHeightFunc func(ctx context.Context) (int64, error)
+
 	// SubscribeFunc mocks the Subscribe method.
 	SubscribeFunc func(ctx context.Context, subscriber string, query string, outCapacity ...int) (<-chan coretypes.ResultEvent, error)
 
@@ -150,6 +156,11 @@ type BlockClientMock struct {
 	calls struct {
 		// LatestBlockHeight holds details about calls to the LatestBlockHeight method.
 		LatestBlockHeight []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
+		// LatestNodeBlockHeight holds details about calls to the LatestNodeBlockHeight method.
+		LatestNodeBlockHeight []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 		}
@@ -174,9 +185,10 @@ type BlockClientMock struct {
 			Query string
 		}
 	}
-	lockLatestBlockHeight sync.RWMutex
-	lockSubscribe         sync.RWMutex
-	lockUnsubscribe       sync.RWMutex
+	lockLatestBlockHeight     sync.RWMutex
+	lockLatestNodeBlockHeight sync.RWMutex
+	lockSubscribe             sync.RWMutex
+	lockUnsubscribe           sync.RWMutex
 }
 
 // LatestBlockHeight calls LatestBlockHeightFunc.
@@ -207,6 +219,37 @@ func (mock *BlockClientMock) LatestBlockHeightCalls() []struct {
 	mock.lockLatestBlockHeight.RLock()
 	calls = mock.calls.LatestBlockHeight
 	mock.lockLatestBlockHeight.RUnlock()
+	return calls
+}
+
+// LatestNodeBlockHeight calls LatestNodeBlockHeightFunc.
+func (mock *BlockClientMock) LatestNodeBlockHeight(ctx context.Context) (int64, error) {
+	if mock.LatestNodeBlockHeightFunc == nil {
+		panic("BlockClientMock.LatestNodeBlockHeightFunc: method is nil but BlockClient.LatestNodeBlockHeight was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockLatestNodeBlockHeight.Lock()
+	mock.calls.LatestNodeBlockHeight = append(mock.calls.LatestNodeBlockHeight, callInfo)
+	mock.lockLatestNodeBlockHeight.Unlock()
+	return mock.LatestNodeBlockHeightFunc(ctx)
+}
+
+// LatestNodeBlockHeightCalls gets all the calls that were made to LatestNodeBlockHeight.
+// Check the length with:
+//     len(mockedBlockClient.LatestNodeBlockHeightCalls())
+func (mock *BlockClientMock) LatestNodeBlockHeightCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockLatestNodeBlockHeight.RLock()
+	calls = mock.calls.LatestNodeBlockHeight
+	mock.lockLatestNodeBlockHeight.RUnlock()
 	return calls
 }
 

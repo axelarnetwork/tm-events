@@ -72,6 +72,22 @@ func (r *RobustClient) LatestBlockHeight(ctx context.Context) (int64, error) {
 	return status.Response.LastBlockHeight, nil
 }
 
+// LatestNodeBlockHeight returns the height of the latest block synced by the RPC node
+func (r *RobustClient) LatestNodeBlockHeight(ctx context.Context) (int64, error) {
+	var status *coretypes.ResultStatus
+	var err error
+	err = r.execute(func() error {
+		status, err = r.client.Status(ctx)
+		return err
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return status.SyncInfo.LatestBlockHeight, nil
+}
+
 // Stop stops the client and closes the server connection
 func (r *RobustClient) Stop() error {
 	return r.execute(func() error { return r.client.Stop() })

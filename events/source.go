@@ -266,7 +266,7 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 	backOff := utils.LinearBackOff(q.backOff)
 	for i := 0; i <= q.retries; i++ {
 		ctx, cancel := ctxWithTimeout(ctx, q.timeout)
-		latestBlockHeight, err := q.client.LatestBlockHeight(ctx)
+		latestBlockHeight, err := q.client.LatestNodeBlockHeight(ctx)
 		cancel()
 		if err == nil {
 			return latestBlockHeight, nil
@@ -278,9 +278,10 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 	return 0, fmt.Errorf("aborting sync status retrieval after %d attemts ", q.retries+1)
 }
 
-// BlockHeightClient can query the latest block height
+// BlockHeightClient can query the latest block height of the network and node
 type BlockHeightClient interface {
 	LatestBlockHeight(ctx context.Context) (int64, error)
+	LatestNodeBlockHeight(ctx context.Context) (int64, error)
 }
 
 // SubscriptionClient subscribes to and unsubscribes from Tendermint events
@@ -340,10 +341,10 @@ func (b *Notifier) StartingAt(block int64) *Notifier {
 	return b
 }
 
-func (b *Notifier) getLatestBlockHeight() (int64, error) {
+func (b *Notifier) getLatestNodeBlockHeight() (int64, error) {
 	ctx, cancel := ctxWithTimeout(context.Background(), b.timeout)
 	defer cancel()
-	return b.client.LatestBlockHeight(ctx)
+	return b.client.LatestNodeBlockHeight(ctx)
 }
 
 // BlockHeights returns a channel with the block heights from the beginning of the chain to all newly discovered blocks.
@@ -355,7 +356,7 @@ func (b *Notifier) BlockHeights(ctx context.Context) (<-chan int64, <-chan error
 	// if no start block has been set explicitly try to fetch the latest block height
 	if b.start == 0 {
 		b.start = -1
-		height, err := b.getLatestBlockHeight()
+		height, err := b.getLatestNodeBlockHeight()
 		if err == nil {
 			b.start = height
 		}

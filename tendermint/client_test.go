@@ -36,6 +36,16 @@ func TestResettableClient(t *testing.T) {
 						Response: types.ResponseInfo{LastBlockHeight: expectedBlockHeight},
 					}, nil
 				},
+				StatusFunc: func(context.Context) (*coretypes.ResultStatus, error) {
+					calls++
+					if calls > untilFailure {
+						return nil, fmt.Errorf("post failed: some connection error")
+					}
+
+					return &coretypes.ResultStatus{
+						SyncInfo: coretypes.SyncInfo{LatestBlockHeight: expectedBlockHeight},
+					}, nil
+				},
 				StopFunc: func() error { return nil },
 			}, nil
 		})
@@ -49,9 +59,22 @@ func TestResettableClient(t *testing.T) {
 					assert.Equal(t, expectedBlockHeight, blockHeight)
 				}
 			}
+
+			err = nil
+			for err == nil {
+				var blockHeight int64
+				blockHeight, err = resettableClient.LatestNodeBlockHeight(context.Background())
+				if err == nil {
+					assert.Equal(t, expectedBlockHeight, blockHeight)
+				}
+			}
 		}).
 		Then("recover the connection", func(t *testing.T) {
 			blockHeight, err := resettableClient.LatestBlockHeight(context.Background())
+			assert.NoError(t, err)
+			assert.Equal(t, expectedBlockHeight, blockHeight)
+
+			blockHeight, err = resettableClient.LatestNodeBlockHeight(context.Background())
 			assert.NoError(t, err)
 			assert.Equal(t, expectedBlockHeight, blockHeight)
 		}).Run(t, 20)

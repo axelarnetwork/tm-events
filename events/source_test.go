@@ -168,6 +168,9 @@ func TestBlockNotifier_BlockHeights(t *testing.T) {
 		client.LatestBlockHeightFunc = func(context.Context) (int64, error) {
 			return 0, fmt.Errorf("some error")
 		}
+		client.LatestNodeBlockHeightFunc = func(context.Context) (int64, error) {
+			return 0, fmt.Errorf("some error")
+		}
 		start := rand.I64Between(0, 1000000)
 		notifier := events.NewBlockNotifier(client, log.TestingLogger(), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
 
@@ -238,7 +241,8 @@ func NewClientMock() *clientMock {
 
 	subscriptionCtx, subscriptionCancel := context.WithCancel(context.Background())
 	blockClientMock := &mock.BlockClientMock{
-		LatestBlockHeightFunc: func(context.Context) (int64, error) { return client.LatestBlock, nil },
+		LatestBlockHeightFunc:     func(context.Context) (int64, error) { return client.LatestBlock, nil },
+		LatestNodeBlockHeightFunc: func(context.Context) (int64, error) { return client.LatestBlock, nil },
 		SubscribeFunc: func(_ context.Context, _ string, _ string, out ...int) (<-chan coretypes.ResultEvent, error) {
 			eventChan := make(chan coretypes.ResultEvent, out[0])
 
