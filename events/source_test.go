@@ -165,8 +165,8 @@ func TestBlockNotifier_BlockHeights(t *testing.T) {
 
 	t.Run("GIVEN query fails THEN return error", testutils.Func(func(t *testing.T) {
 		client := NewClientMock()
-		client.LatestBlockHeightFunc = func(context.Context) (int64, error) {
-			return 0, fmt.Errorf("some error")
+		client.LatestSyncInfoFunc = func(context.Context) (*coretypes.SyncInfo, error) {
+			return nil, fmt.Errorf("some error")
 		}
 		start := rand.I64Between(0, 1000000)
 		notifier := events.NewBlockNotifier(client, log.TestingLogger(), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
@@ -226,19 +226,23 @@ func NewBlockHeaderEvent(blockHeight int64) coretypes.ResultEvent {
 
 type clientMock struct {
 	*mock.BlockClientMock
-	LatestBlock int64
-	newBlocks   chan coretypes.ResultEvent
+	LatestBlock     int64
+	LatestBlockTime time.Time
+	newBlocks       chan coretypes.ResultEvent
 }
 
 func NewClientMock() *clientMock {
 	client := &clientMock{
-		newBlocks:   make(chan coretypes.ResultEvent, 1000),
-		LatestBlock: 0,
+		newBlocks:       make(chan coretypes.ResultEvent, 1000),
+		LatestBlock:     0,
+		LatestBlockTime: time.Unix(0, 0),
 	}
 
 	subscriptionCtx, subscriptionCancel := context.WithCancel(context.Background())
 	blockClientMock := &mock.BlockClientMock{
-		LatestBlockHeightFunc: func(context.Context) (int64, error) { return client.LatestBlock, nil },
+		LatestSyncInfoFunc: func(context.Context) (*coretypes.SyncInfo, error) {
+			return &coretypes.SyncInfo{LatestBlockHeight: client.LatestBlock, LatestBlockTime: client.LatestBlockTime}, nil
+		},
 		SubscribeFunc: func(_ context.Context, _ string, _ string, out ...int) (<-chan coretypes.ResultEvent, error) {
 			eventChan := make(chan coretypes.ResultEvent, out[0])
 
@@ -268,5 +272,6 @@ func NewClientMock() *clientMock {
 
 func (c *clientMock) NextBlock(height int64) {
 	c.LatestBlock = height
+	c.LatestBlockTime = time.Now()
 	c.newBlocks <- NewBlockHeaderEvent(height)
 }

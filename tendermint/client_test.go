@@ -42,16 +42,16 @@ func TestResettableClient(t *testing.T) {
 		When("calling a tendermint function until the connection fails", func(t *testing.T) {
 			var err error
 			for err == nil {
-				var blockHeight int64
-				blockHeight, err = resettableClient.LatestBlockHeight(context.Background())
+				var syncInfo *coretypes.SyncInfo
+				syncInfo, err = resettableClient.LatestSyncInfo(context.Background())
 				if err == nil {
-					assert.Equal(t, expectedBlockHeight, blockHeight)
+					assert.Equal(t, expectedBlockHeight, syncInfo.LatestBlockHeight)
 				}
 			}
 		}).
 		Then("recover the connection", func(t *testing.T) {
-			blockHeight, err := resettableClient.LatestBlockHeight(context.Background())
+			syncInfo, err := resettableClient.LatestSyncInfo(context.Background())
 			assert.NoError(t, err)
-			assert.Equal(t, expectedBlockHeight, blockHeight)
+			assert.Equal(t, expectedBlockHeight, syncInfo.LatestBlockHeight)
 		}).Run(t, 20)
 }
