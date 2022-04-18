@@ -201,7 +201,7 @@ func (b *eventblockNotifier) Done() chan struct{} {
 }
 
 type queryBlockNotifier struct {
-	client            BlockInfoClient
+	client            SyncInfoClient
 	retries           int
 	timeout           time.Duration
 	backOff           time.Duration
@@ -209,7 +209,7 @@ type queryBlockNotifier struct {
 	logger            log.Logger
 }
 
-func newQueryBlockNotifier(client BlockInfoClient, logger log.Logger, options ...DialOption) *queryBlockNotifier {
+func newQueryBlockNotifier(client SyncInfoClient, logger log.Logger, options ...DialOption) *queryBlockNotifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
@@ -278,8 +278,8 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 	return 0, fmt.Errorf("aborting sync status retrieval after %d attemts ", q.retries+1)
 }
 
-// BlockInfoClient can query the node's sync info
-type BlockInfoClient interface {
+// SyncInfoClient can query the node's sync info
+type SyncInfoClient interface {
 	LatestSyncInfo(ctx context.Context) (*coretypes.SyncInfo, error)
 }
 
@@ -289,9 +289,9 @@ type SubscriptionClient interface {
 	Unsubscribe(ctx context.Context, subscriber, query string) error
 }
 
-// BlockClient is both BlockInfoClient and SubscriptionClient
+// BlockClient is both SyncInfoClient and SubscriptionClient
 type BlockClient interface {
-	BlockInfoClient
+	SyncInfoClient
 	SubscriptionClient
 }
 
@@ -345,7 +345,7 @@ func (b *Notifier) getLatestBlockHeight() (int64, error) {
 	defer cancel()
 	info, err := b.client.LatestSyncInfo(ctx)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	return info.LatestBlockHeight, nil
