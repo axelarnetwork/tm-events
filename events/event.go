@@ -7,6 +7,7 @@ import (
 )
 
 // Event stores type, module, action and attributes list of sdk
+// Deprecated
 type Event struct {
 	Type       string
 	Attributes map[string]string
