@@ -106,7 +106,7 @@ func matchAllValueSets(event Event, sets ...AttributeValueSet) bool {
 func QueryBlockHeader() func(event Event) bool {
 	blockHeight := int64(-1)
 	return func(e Event) bool {
-		if e.Height != blockHeight {
+		if e.Height > blockHeight {
 			blockHeight = e.Height
 			return true
 		}
