@@ -201,7 +201,7 @@ func (b *eventblockNotifier) Done() chan struct{} {
 }
 
 type queryBlockNotifier struct {
-	client            BlockHeightClient
+	client            SyncInfoClient
 	retries           int
 	timeout           time.Duration
 	backOff           time.Duration
@@ -209,7 +209,7 @@ type queryBlockNotifier struct {
 	logger            log.Logger
 }
 
-func newQueryBlockNotifier(client BlockHeightClient, logger log.Logger, options ...DialOption) *queryBlockNotifier {
+func newQueryBlockNotifier(client SyncInfoClient, logger log.Logger, options ...DialOption) *queryBlockNotifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
@@ -266,10 +266,10 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 	backOff := utils.LinearBackOff(q.backOff)
 	for i := 0; i <= q.retries; i++ {
 		ctx, cancel := ctxWithTimeout(ctx, q.timeout)
-		latestBlockHeight, err := q.client.LatestBlockHeight(ctx)
+		syncInfo, err := q.client.LatestSyncInfo(ctx)
 		cancel()
 		if err == nil {
-			return latestBlockHeight, nil
+			return syncInfo.LatestBlockHeight, nil
 		}
 
 		q.logger.Info(sdkerrors.Wrapf(err, "failed to retrieve node status, attempt %d", i+1).Error())
@@ -278,9 +278,9 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 	return 0, fmt.Errorf("aborting sync status retrieval after %d attemts ", q.retries+1)
 }
 
-// BlockHeightClient can query the latest block height
-type BlockHeightClient interface {
-	LatestBlockHeight(ctx context.Context) (int64, error)
+// SyncInfoClient can query the node's sync info
+type SyncInfoClient interface {
+	LatestSyncInfo(ctx context.Context) (*coretypes.SyncInfo, error)
 }
 
 // SubscriptionClient subscribes to and unsubscribes from Tendermint events
@@ -289,9 +289,9 @@ type SubscriptionClient interface {
 	Unsubscribe(ctx context.Context, subscriber, query string) error
 }
 
-// BlockClient is both BlockHeightClient and SubscriptionClient
+// BlockClient is both SyncInfoClient and SubscriptionClient
 type BlockClient interface {
-	BlockHeightClient
+	SyncInfoClient
 	SubscriptionClient
 }
 
@@ -343,7 +343,12 @@ func (b *Notifier) StartingAt(block int64) *Notifier {
 func (b *Notifier) getLatestBlockHeight() (int64, error) {
 	ctx, cancel := ctxWithTimeout(context.Background(), b.timeout)
 	defer cancel()
-	return b.client.LatestBlockHeight(ctx)
+	info, err := b.client.LatestSyncInfo(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return info.LatestBlockHeight, nil
 }
 
 // BlockHeights returns a channel with the block heights from the beginning of the chain to all newly discovered blocks.

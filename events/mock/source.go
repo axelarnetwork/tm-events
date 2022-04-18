@@ -121,8 +121,8 @@ var _ events.BlockClient = &BlockClientMock{}
 //
 // 		// make and configure a mocked events.BlockClient
 // 		mockedBlockClient := &BlockClientMock{
-// 			LatestBlockHeightFunc: func(ctx context.Context) (int64, error) {
-// 				panic("mock out the LatestBlockHeight method")
+// 			LatestSyncInfoFunc: func(ctx context.Context) (*coretypes.SyncInfo, error) {
+// 				panic("mock out the LatestSyncInfo method")
 // 			},
 // 			SubscribeFunc: func(ctx context.Context, subscriber string, query string, outCapacity ...int) (<-chan coretypes.ResultEvent, error) {
 // 				panic("mock out the Subscribe method")
@@ -137,8 +137,8 @@ var _ events.BlockClient = &BlockClientMock{}
 //
 // 	}
 type BlockClientMock struct {
-	// LatestBlockHeightFunc mocks the LatestBlockHeight method.
-	LatestBlockHeightFunc func(ctx context.Context) (int64, error)
+	// LatestSyncInfoFunc mocks the LatestSyncInfo method.
+	LatestSyncInfoFunc func(ctx context.Context) (*coretypes.SyncInfo, error)
 
 	// SubscribeFunc mocks the Subscribe method.
 	SubscribeFunc func(ctx context.Context, subscriber string, query string, outCapacity ...int) (<-chan coretypes.ResultEvent, error)
@@ -148,8 +148,8 @@ type BlockClientMock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// LatestBlockHeight holds details about calls to the LatestBlockHeight method.
-		LatestBlockHeight []struct {
+		// LatestSyncInfo holds details about calls to the LatestSyncInfo method.
+		LatestSyncInfo []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 		}
@@ -174,39 +174,39 @@ type BlockClientMock struct {
 			Query string
 		}
 	}
-	lockLatestBlockHeight sync.RWMutex
-	lockSubscribe         sync.RWMutex
-	lockUnsubscribe       sync.RWMutex
+	lockLatestSyncInfo sync.RWMutex
+	lockSubscribe      sync.RWMutex
+	lockUnsubscribe    sync.RWMutex
 }
 
-// LatestBlockHeight calls LatestBlockHeightFunc.
-func (mock *BlockClientMock) LatestBlockHeight(ctx context.Context) (int64, error) {
-	if mock.LatestBlockHeightFunc == nil {
-		panic("BlockClientMock.LatestBlockHeightFunc: method is nil but BlockClient.LatestBlockHeight was just called")
+// LatestSyncInfo calls LatestSyncInfoFunc.
+func (mock *BlockClientMock) LatestSyncInfo(ctx context.Context) (*coretypes.SyncInfo, error) {
+	if mock.LatestSyncInfoFunc == nil {
+		panic("BlockClientMock.LatestSyncInfoFunc: method is nil but BlockClient.LatestSyncInfo was just called")
 	}
 	callInfo := struct {
 		Ctx context.Context
 	}{
 		Ctx: ctx,
 	}
-	mock.lockLatestBlockHeight.Lock()
-	mock.calls.LatestBlockHeight = append(mock.calls.LatestBlockHeight, callInfo)
-	mock.lockLatestBlockHeight.Unlock()
-	return mock.LatestBlockHeightFunc(ctx)
+	mock.lockLatestSyncInfo.Lock()
+	mock.calls.LatestSyncInfo = append(mock.calls.LatestSyncInfo, callInfo)
+	mock.lockLatestSyncInfo.Unlock()
+	return mock.LatestSyncInfoFunc(ctx)
 }
 
-// LatestBlockHeightCalls gets all the calls that were made to LatestBlockHeight.
+// LatestSyncInfoCalls gets all the calls that were made to LatestSyncInfo.
 // Check the length with:
-//     len(mockedBlockClient.LatestBlockHeightCalls())
-func (mock *BlockClientMock) LatestBlockHeightCalls() []struct {
+//     len(mockedBlockClient.LatestSyncInfoCalls())
+func (mock *BlockClientMock) LatestSyncInfoCalls() []struct {
 	Ctx context.Context
 } {
 	var calls []struct {
 		Ctx context.Context
 	}
-	mock.lockLatestBlockHeight.RLock()
-	calls = mock.calls.LatestBlockHeight
-	mock.lockLatestBlockHeight.RUnlock()
+	mock.lockLatestSyncInfo.RLock()
+	calls = mock.calls.LatestSyncInfo
+	mock.lockLatestSyncInfo.RUnlock()
 	return calls
 }
 
