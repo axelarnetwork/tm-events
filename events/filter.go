@@ -84,32 +84,3 @@ func matchAll(event Event, attributes ...sdk.Attribute) bool {
 	}
 	return true
 }
-
-// QueryEventByValueSets creates a Query for an event with at least one attribute value
-// contained in every provided attribute value set.
-func QueryEventByValueSets(eventType string, module string, sets ...AttributeValueSet) func(event Event) bool {
-	return func(e Event) bool {
-		return e.Type == eventType && e.Attributes[sdk.AttributeKeyModule] == module && matchAllValueSets(e, sets...)
-	}
-}
-
-func matchAllValueSets(event Event, sets ...AttributeValueSet) bool {
-	for _, s := range sets {
-		if s.Match(event) {
-			return true
-		}
-	}
-	return false
-}
-
-// QueryBlockHeader creates a query that matches new block events once per block
-func QueryBlockHeader() func(event Event) bool {
-	blockHeight := int64(-1)
-	return func(e Event) bool {
-		if e.Height > blockHeight {
-			blockHeight = e.Height
-			return true
-		}
-		return false
-	}
-}
