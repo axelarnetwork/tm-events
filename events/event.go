@@ -18,8 +18,9 @@ type ABCIEventWithHeight struct {
 	abci.Event
 }
 
-// Parse parses string to event
-func Parse(event ABCIEventWithHeight) Event {
+// Map transforms the ABCIEventWithHeight into an Event
+// Deprecated
+func Map(event ABCIEventWithHeight) Event {
 	e := Event{Type: event.Type, Attributes: make(map[string]string), Height: event.Height}
 
 	for _, attribute := range event.Attributes {

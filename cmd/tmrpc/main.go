@@ -83,9 +83,9 @@ func CmdWaitEvent(busPtr **events.Bus, logger tmlog.Logger) *cobra.Command {
 			}
 
 			logger.Debug("waiting for event", logKeyVals...)
-			sub := eventBus.Subscribe(funcs.Compose(events.Parse, events.QueryEventByAttributes(eventType, module, attributes...)))
+			sub := eventBus.Subscribe(funcs.Compose(events.Map, events.QueryEventByAttributes(eventType, module, attributes...)))
 			once := sync.Once{}
-			job := events.Consume(chans.Map(sub, events.Parse), func(e events.Event) {
+			job := events.Consume(chans.Map(sub, events.Map), func(e events.Event) {
 				once.Do(func() {
 					logger.Debug(fmt.Sprintf("found event %v", e), logKeyVals...)
 					shutdownBus()
