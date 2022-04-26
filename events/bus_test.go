@@ -86,7 +86,7 @@ func TestBus_Subscribe(t *testing.T) {
 	}
 
 	repeats := 20
-	t.Run("query block with txs", testutils.Func(func(t *testing.T) {
+	t.Run("WHEN subscribing to block events THEN event height matches block height", testutils.Func(func(t *testing.T) {
 		setup()
 
 		bus.FetchEvents(context.Background())
