@@ -20,7 +20,7 @@ func TestResettableClient(t *testing.T) {
 		expectedBlockHeight = rand.PosI64()
 		resettableClient    *tendermint.RobustClient
 	)
-	Given("a resettable client with an unreliable connection", func(t *testing.T) {
+	Given("a resettable client with an unreliable connection", func() {
 		resettableClient = tendermint.NewRobustClient(func() (client.Client, error) {
 			untilFailure := rand.I64Between(1, 100)
 			calls := int64(0)
@@ -39,7 +39,7 @@ func TestResettableClient(t *testing.T) {
 			}, nil
 		})
 	}).
-		When("calling a tendermint function until the connection fails", func(t *testing.T) {
+		When("calling a tendermint function until the connection fails", func() {
 			var err error
 			for err == nil {
 				var syncInfo *coretypes.SyncInfo
