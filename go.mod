@@ -4,14 +4,15 @@ go 1.18
 
 require (
 	github.com/axelarnetwork/utils v0.0.0-20220426214536-1bf1f579f819
-	github.com/cosmos/cosmos-sdk v0.45.1
-	github.com/cucumber/godog v0.12.0
-	github.com/matryer/moq v0.2.7
+	github.com/boz/go-lifecycle v0.1.0
+	github.com/cosmos/cosmos-sdk v0.45.4
+	github.com/cucumber/godog v0.12.5
 	github.com/smallnest/chanx v1.0.1-0.20211205150931-349643806662
-	github.com/spf13/cobra v1.3.0
+	github.com/matryer/moq v0.2.7
+	github.com/spf13/cobra v1.4.0
 	github.com/stretchr/testify v1.7.1
-	github.com/tendermint/tendermint v0.34.16
-	golang.org/x/tools v0.1.10
+	github.com/tendermint/tendermint v0.34.19
+ 	golang.org/x/tools v0.1.10
 )
 
 require (
@@ -81,8 +82,8 @@ require (
 	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
-	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
-	google.golang.org/grpc v1.44.0 // indirect
+	google.golang.org/genproto v0.0.0-20211223182754-3ac035c7e7cb // indirect
+	google.golang.org/grpc v1.45.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
