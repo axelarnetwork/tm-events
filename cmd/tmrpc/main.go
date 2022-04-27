@@ -7,15 +7,15 @@ import (
 	"sync"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/spf13/cobra"
 	tmlog "github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/libs/pubsub/query"
 	"github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/axelarnetwork/tm-events/events"
 	"github.com/axelarnetwork/tm-events/pubsub"
 	"github.com/axelarnetwork/tm-events/tendermint"
+	"github.com/axelarnetwork/utils/chans"
+	"github.com/axelarnetwork/utils/funcs"
 	"github.com/axelarnetwork/utils/jobs"
 )
 
@@ -41,7 +41,7 @@ func main() {
 			})
 			notifier := events.NewBlockNotifier(resettableClient, logger)
 			blockSource := events.NewBlockSource(resettableClient, notifier, logger)
-			eventBus = events.NewEventBus(blockSource, pubsub.NewBus, logger)
+			eventBus = events.NewEventBus(blockSource, pubsub.NewBus[events.ABCIEventWithHeight](), logger)
 			return nil
 		},
 	}
@@ -51,7 +51,6 @@ func main() {
 
 	cmd.AddCommand(
 		CmdWaitEvent(&eventBus, logger),
-		CmdWaitQuery(&eventBus, logger),
 	)
 
 	if err := cmd.Execute(); err != nil {
@@ -84,48 +83,15 @@ func CmdWaitEvent(busPtr **events.Bus, logger tmlog.Logger) *cobra.Command {
 			}
 
 			logger.Debug("waiting for event", logKeyVals...)
-			sub := events.MustSubscribeWithAttributes(eventBus, eventType, module, attributes...)
+			sub := eventBus.Subscribe(funcs.Compose(events.Map, events.QueryEventByAttributes(eventType, module, attributes...)))
 			once := sync.Once{}
-			job := events.Consume(sub, func(e events.Event) {
+			job := events.Consume(chans.Map(sub, events.Map), func(e events.Event) {
 				once.Do(func() {
 					logger.Debug(fmt.Sprintf("found event %v", e), logKeyVals...)
 					shutdownBus()
 					<-eventBus.Done()
 				})
 			})
-			mgr := jobs.NewMgr(context.Background())
-			mgr.AddJob(job)
-
-			<-mgr.Done()
-
-			return nil
-		},
-	}
-	return cmd
-}
-
-// CmdWaitQuery returns a cli command to wait for the first event matching the given query
-func CmdWaitQuery(busPtr **events.Bus, logger tmlog.Logger) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "wait-query <query string>",
-		Short: "Wait for the next event matching the query",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			eventBus := *busPtr
-			shutdownBus := startFetchingEvents(eventBus, logger)
-
-			q := events.Query{TMQuery: query.MustParse(args[0]), Predicate: func(events.Event) bool { return true }}
-			logger.Debug(fmt.Sprintf("waiting for event matching query '%s'", q.TMQuery.String()))
-			sub := events.MustSubscribe(eventBus, q, func(err error) error { return sdkerrors.Wrap(err, "query subscription failed") })
-			once := sync.Once{}
-			job := events.Consume(sub, func(e events.Event) {
-				once.Do(func() {
-					logger.Debug(fmt.Sprintf("found event matching query '%s': %v", q.TMQuery.String(), e))
-					shutdownBus()
-					<-eventBus.Done()
-				})
-			})
-
 			mgr := jobs.NewMgr(context.Background())
 			mgr.AddJob(job)
 
