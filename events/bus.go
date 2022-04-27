@@ -102,6 +102,6 @@ func (b *Bus) publish(block *coretypes.ResultBlockResults) error {
 		}
 	}
 
-	b.logger.Debug(fmt.Sprintf("published all events for block %d", block.Height))
+	b.logger.Debug("published all events for block", "block_height", block.Height)
 	return nil
 }
