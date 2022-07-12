@@ -8,6 +8,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
+	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/rpc/client"
 
@@ -41,7 +42,7 @@ func main() {
 			})
 			notifier := events.NewBlockNotifier(resettableClient, logger)
 			blockSource := events.NewBlockSource(resettableClient, notifier, logger)
-			eventBus = events.NewEventBus(blockSource, pubsub.NewBus[events.ABCIEventWithHeight](), logger)
+			eventBus = events.NewEventBus(blockSource, pubsub.NewBus[abci.Event](), logger)
 			return nil
 		},
 	}

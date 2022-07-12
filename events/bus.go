@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
@@ -14,11 +15,11 @@ type Bus struct {
 	source BlockSource
 	logger log.Logger
 	done   chan struct{}
-	bus    pubsub.Bus[ABCIEventWithHeight]
+	bus    pubsub.Bus[abci.Event]
 }
 
 // NewEventBus returns a new event bus instance
-func NewEventBus(source BlockSource, bus pubsub.Bus[ABCIEventWithHeight], logger log.Logger) *Bus {
+func NewEventBus(source BlockSource, bus pubsub.Bus[abci.Event], logger log.Logger) *Bus {
 	return &Bus{
 		bus:    bus,
 		source: source,
@@ -67,7 +68,7 @@ func (b *Bus) FetchEvents(ctx context.Context) <-chan error {
 }
 
 // Subscribe returns an event subscription based on the given query
-func (b *Bus) Subscribe(predicate func(ABCIEventWithHeight) bool) <-chan ABCIEventWithHeight {
+func (b *Bus) Subscribe(predicate func(abci.Event) bool) <-chan abci.Event {
 	return b.bus.Subscribe(predicate)
 }
 
@@ -80,10 +81,7 @@ func (b *Bus) publish(block *coretypes.ResultBlockResults) error {
 	// beginBlock and endBlock events are published together as block events
 	blockEvents := append(block.BeginBlockEvents, block.EndBlockEvents...)
 	for _, event := range blockEvents {
-		err := b.bus.Publish(ABCIEventWithHeight{
-			Height: block.Height,
-			Event:  event,
-		})
+		err := b.bus.Publish(event)
 		if err != nil {
 			return err
 		}
@@ -91,10 +89,7 @@ func (b *Bus) publish(block *coretypes.ResultBlockResults) error {
 
 	for _, txRes := range block.TxsResults {
 		for _, event := range txRes.Events {
-			err := b.bus.Publish(ABCIEventWithHeight{
-				Height: block.Height,
-				Event:  event,
-			})
+			err := b.bus.Publish(event)
 			if err != nil {
 				return err
 			}
