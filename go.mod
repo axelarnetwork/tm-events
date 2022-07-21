@@ -3,7 +3,7 @@ module github.com/axelarnetwork/tm-events
 go 1.18
 
 require (
-	github.com/axelarnetwork/utils v0.0.0-20220714142220-0c2c1db87fc8
+	github.com/axelarnetwork/utils v0.0.0-20220721182426-f9baa0158e5b
 	github.com/cosmos/cosmos-sdk v0.45.6
 	github.com/cucumber/godog v0.12.5
 	github.com/matryer/moq v0.2.7
@@ -79,7 +79,7 @@ require (
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.0.0-20220412020605-290c469a71a5 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
+	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20220505152158-f39f71e6c8f3 // indirect
 	google.golang.org/grpc v1.46.0 // indirect
