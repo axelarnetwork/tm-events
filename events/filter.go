@@ -45,20 +45,6 @@ type AttributeValueSet struct {
 	values map[string]struct{}
 }
 
-// NewAttributeValueSet creates a set of possible values for an Attribute key from a list of strings
-func NewAttributeValueSet(key string, values ...string) AttributeValueSet {
-	valMap := make(map[string]struct{})
-
-	for _, v := range values {
-		valMap[v] = struct{}{}
-	}
-
-	return AttributeValueSet{
-		key:    key,
-		values: valMap,
-	}
-}
-
 // Match checks whether the passed event contains an attribute whose value is contained by the set
 func (s AttributeValueSet) Match(e Event) bool {
 	if key, ok := e.Attributes[s.key]; ok {

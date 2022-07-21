@@ -12,16 +12,10 @@ type Event struct {
 	Height     int64
 }
 
-// ABCIEventWithHeight adds a height field to abci.Event
-type ABCIEventWithHeight struct {
-	Height int64
-	abci.Event
-}
-
 // Map transforms the ABCIEventWithHeight into an Event
 // Deprecated
-func Map(event ABCIEventWithHeight) Event {
-	e := Event{Type: event.Type, Attributes: make(map[string]string), Height: event.Height}
+func Map(event abci.Event) Event {
+	e := Event{Type: event.Type, Attributes: make(map[string]string)}
 
 	for _, attribute := range event.Attributes {
 		if len(attribute.Key) == 0 {
