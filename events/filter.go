@@ -5,9 +5,22 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gogo/protobuf/proto"
 
 	"github.com/axelarnetwork/utils/jobs"
 )
+
+// Filter returns true if an event is of the given generic type, false otherwise
+func Filter[T proto.Message]() func(e ABCIEventWithHeight) bool {
+	return func(e ABCIEventWithHeight) bool {
+		typedEvent, err := sdk.ParseTypedEvent(e.Event)
+		if err != nil {
+			return false
+		}
+
+		return proto.MessageName(typedEvent) == proto.MessageName(*new(T))
+	}
+}
 
 // Consume processes all events from the given subscriber with the given function.
 // Do not consume the same subscriber multiple times.
