@@ -22,7 +22,7 @@ jobs:
         run: go install github.com/mgechev/revive@latest
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Linting
-        run: revive -set_exit_status ./...
+        run: revive -config $GITHUB_WORKSPACE/revive_config.toml -set_exit_status ./...
