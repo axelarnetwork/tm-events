@@ -6,7 +6,7 @@ require (
 	github.com/axelarnetwork/utils v0.0.0-20221018171954-4cff3987a5c4
 	github.com/cosmos/cosmos-sdk v0.45.9
 	github.com/cucumber/godog v0.12.5
-	github.com/gogo/protobuf v1.3.3
+	github.com/gogo/protobuf v1.3.2
 	github.com/matryer/moq v0.2.7
 	github.com/smallnest/chanx v1.0.1-0.20211205150931-349643806662
 	github.com/spf13/cobra v1.5.0
