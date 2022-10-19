@@ -49,7 +49,7 @@ func Consume[T any](subscriber <-chan T, process func(event T)) jobs.Job {
 
 func recovery(errChan chan<- error) {
 	if r := recover(); r != nil {
-		err := fmt.Errorf("job panicked: %s", errors.Wrap(r, 0).ErrorStack())
+		err := fmt.Errorf("job panicked: %s\n%s", r, errors.Wrap(r, 1).Stack())
 		errChan <- err
 	}
 }
