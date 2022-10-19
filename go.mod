@@ -6,10 +6,11 @@ require (
 	github.com/axelarnetwork/utils v0.0.0-20221019171941-b92ac0d3499b
 	github.com/cosmos/cosmos-sdk v0.45.9
 	github.com/cucumber/godog v0.12.5
+	github.com/go-errors/errors v1.4.2
 	github.com/gogo/protobuf v1.3.3
 	github.com/matryer/moq v0.2.7
 	github.com/smallnest/chanx v1.0.1-0.20211205150931-349643806662
-	github.com/spf13/cobra v1.6.0
+	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
 	github.com/tendermint/tendermint v0.34.21
 	golang.org/x/tools v0.1.12
@@ -33,7 +34,6 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-kit/kit v0.12.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect

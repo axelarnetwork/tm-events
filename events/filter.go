@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/go-errors/errors"
 	"github.com/gogo/protobuf/proto"
 
 	"github.com/axelarnetwork/utils/jobs"
@@ -48,7 +49,8 @@ func Consume[T any](subscriber <-chan T, process func(event T)) jobs.Job {
 
 func recovery(errChan chan<- error) {
 	if r := recover(); r != nil {
-		errChan <- fmt.Errorf("job panicked:%s", r)
+		err := fmt.Errorf("job panicked: %s\n%s", r, errors.Wrap(r, 1).Stack())
+		errChan <- err
 	}
 }
 
