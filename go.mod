@@ -10,7 +10,7 @@ require (
 	github.com/gogo/protobuf v1.3.3
 	github.com/matryer/moq v0.2.7
 	github.com/smallnest/chanx v1.0.1-0.20211205150931-349643806662
-	github.com/spf13/cobra v1.6.0
+	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
 	github.com/tendermint/tendermint v0.34.21
 	golang.org/x/tools v0.1.12
