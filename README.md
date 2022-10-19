@@ -6,14 +6,14 @@ This repository provides:
 - easy query creation and event filters
 - a shell tool to wait for specified events before continuing execution
 
-# Build
+## Build
 
 Install [libzmq](https://zeromq.org/download/). On Mac OS, do
 ```sh
 brew install zmq
 ```
 
-To build,
+To build the `tmprc` tool,
 ```sh
 make build
 ```
