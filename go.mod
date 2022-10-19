@@ -32,6 +32,7 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
+	github.com/go-errors/errors v1.4.2
 	github.com/go-kit/kit v0.12.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
