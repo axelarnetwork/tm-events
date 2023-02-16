@@ -13,22 +13,22 @@ var _ Query = &QueryMock{}
 
 // QueryMock is a mock implementation of Query.
 //
-// 	func TestSomethingThatUsesQuery(t *testing.T) {
+//	func TestSomethingThatUsesQuery(t *testing.T) {
 //
-// 		// make and configure a mocked Query
-// 		mockedQuery := &QueryMock{
-// 			MatchesFunc: func(events map[string][]string) (bool, error) {
-// 				panic("mock out the Matches method")
-// 			},
-// 			StringFunc: func() string {
-// 				panic("mock out the String method")
-// 			},
-// 		}
+//		// make and configure a mocked Query
+//		mockedQuery := &QueryMock{
+//			MatchesFunc: func(events map[string][]string) (bool, error) {
+//				panic("mock out the Matches method")
+//			},
+//			StringFunc: func() string {
+//				panic("mock out the String method")
+//			},
+//		}
 //
-// 		// use mockedQuery in code that requires Query
-// 		// and then make assertions.
+//		// use mockedQuery in code that requires Query
+//		// and then make assertions.
 //
-// 	}
+//	}
 type QueryMock struct {
 	// MatchesFunc mocks the Matches method.
 	MatchesFunc func(events map[string][]string) (bool, error)
@@ -69,7 +69,8 @@ func (mock *QueryMock) Matches(events map[string][]string) (bool, error) {
 
 // MatchesCalls gets all the calls that were made to Matches.
 // Check the length with:
-//     len(mockedQuery.MatchesCalls())
+//
+//	len(mockedQuery.MatchesCalls())
 func (mock *QueryMock) MatchesCalls() []struct {
 	Events map[string][]string
 } {
@@ -97,7 +98,8 @@ func (mock *QueryMock) String() string {
 
 // StringCalls gets all the calls that were made to String.
 // Check the length with:
-//     len(mockedQuery.StringCalls())
+//
+//	len(mockedQuery.StringCalls())
 func (mock *QueryMock) StringCalls() []struct {
 } {
 	var calls []struct {
