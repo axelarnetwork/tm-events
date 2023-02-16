@@ -7,11 +7,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-
-	testutils "github.com/axelarnetwork/utils/test"
-	"github.com/axelarnetwork/utils/test/rand"
 
 	"github.com/axelarnetwork/tm-events/events"
 	"github.com/axelarnetwork/tm-events/events/mock"
@@ -31,7 +29,7 @@ func TestBus_FetchEvents(t *testing.T) {
 				return done
 			},
 		}
-		bus := events.NewEventBus(source, pubsub.NewBus[events.ABCIEventWithHeight](), log.TestingLogger())
+		bus := events.NewEventBus(source, pubsub.NewBus[abci.Event](), log.TestingLogger())
 
 		errChan := bus.FetchEvents(context.Background())
 
@@ -53,7 +51,7 @@ func TestBus_FetchEvents(t *testing.T) {
 				return done
 			},
 		}
-		bus := events.NewEventBus(source, pubsub.NewBus[events.ABCIEventWithHeight](), log.TestingLogger())
+		bus := events.NewEventBus(source, pubsub.NewBus[abci.Event](), log.TestingLogger())
 
 		bus.FetchEvents(context.Background())
 
@@ -68,67 +66,4 @@ func TestBus_FetchEvents(t *testing.T) {
 			assert.FailNow(t, "timed out")
 		}
 	})
-}
-
-func TestBus_Subscribe(t *testing.T) {
-	var (
-		bus       *events.Bus
-		newBlocks chan *coretypes.ResultBlockResults
-	)
-
-	setup := func() {
-		newBlocks = make(chan *coretypes.ResultBlockResults, 10000)
-		source := &mock.BlockSourceMock{BlockResultsFunc: func(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error) {
-			return newBlocks, nil
-		}}
-
-		bus = events.NewEventBus(source, pubsub.NewBus[events.ABCIEventWithHeight](), log.TestingLogger())
-	}
-
-	repeats := 20
-	t.Run("WHEN subscribing to block events THEN event height matches block height", testutils.Func(func(t *testing.T) {
-		setup()
-
-		bus.FetchEvents(context.Background())
-		sub := bus.Subscribe(func(events.ABCIEventWithHeight) bool { return true })
-
-		newBlock := &coretypes.ResultBlockResults{
-			Height:           rand.PosI64(),
-			BeginBlockEvents: randomEvents(rand.I64Between(0, 10)),
-			TxsResults:       randomTxResults(rand.I64Between(1, 10)),
-			EndBlockEvents:   randomEvents(rand.I64Between(0, 10)),
-		}
-
-		endMarkerBlock := &coretypes.ResultBlockResults{
-			Height:           0,
-			BeginBlockEvents: randomEvents(rand.I64Between(3, 10)),
-			TxsResults:       randomTxResults(rand.I64Between(1, 10)),
-			EndBlockEvents:   randomEvents(rand.I64Between(3, 10)),
-		}
-		newBlocks <- newBlock
-		newBlocks <- endMarkerBlock
-
-		timeout, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		defer cancel()
-
-		expectedEventCount := len(newBlock.BeginBlockEvents) + len(newBlock.EndBlockEvents)
-		for _, result := range newBlock.TxsResults {
-			expectedEventCount += len(result.Events)
-		}
-		var eventCount int
-		for {
-			select {
-			case <-timeout.Done():
-				assert.FailNow(t, "timed out")
-			case event := <-sub:
-				actualHeight := event.Height
-				if actualHeight == 0 {
-					assert.Equal(t, expectedEventCount, eventCount)
-					return
-				}
-				assert.Equal(t, newBlock.Height, actualHeight)
-				eventCount++
-			}
-		}
-	}).Repeat(repeats))
 }
