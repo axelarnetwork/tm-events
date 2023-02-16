@@ -16,22 +16,22 @@ var _ events.BlockSource = &BlockSourceMock{}
 
 // BlockSourceMock is a mock implementation of events.BlockSource.
 //
-// 	func TestSomethingThatUsesBlockSource(t *testing.T) {
+//	func TestSomethingThatUsesBlockSource(t *testing.T) {
 //
-// 		// make and configure a mocked events.BlockSource
-// 		mockedBlockSource := &BlockSourceMock{
-// 			BlockResultsFunc: func(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error) {
-// 				panic("mock out the BlockResults method")
-// 			},
-// 			DoneFunc: func() <-chan struct{} {
-// 				panic("mock out the Done method")
-// 			},
-// 		}
+//		// make and configure a mocked events.BlockSource
+//		mockedBlockSource := &BlockSourceMock{
+//			BlockResultsFunc: func(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error) {
+//				panic("mock out the BlockResults method")
+//			},
+//			DoneFunc: func() <-chan struct{} {
+//				panic("mock out the Done method")
+//			},
+//		}
 //
-// 		// use mockedBlockSource in code that requires events.BlockSource
-// 		// and then make assertions.
+//		// use mockedBlockSource in code that requires events.BlockSource
+//		// and then make assertions.
 //
-// 	}
+//	}
 type BlockSourceMock struct {
 	// BlockResultsFunc mocks the BlockResults method.
 	BlockResultsFunc func(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error)
@@ -72,7 +72,8 @@ func (mock *BlockSourceMock) BlockResults(ctx context.Context) (<-chan *coretype
 
 // BlockResultsCalls gets all the calls that were made to BlockResults.
 // Check the length with:
-//     len(mockedBlockSource.BlockResultsCalls())
+//
+//	len(mockedBlockSource.BlockResultsCalls())
 func (mock *BlockSourceMock) BlockResultsCalls() []struct {
 	Ctx context.Context
 } {
@@ -100,7 +101,8 @@ func (mock *BlockSourceMock) Done() <-chan struct{} {
 
 // DoneCalls gets all the calls that were made to Done.
 // Check the length with:
-//     len(mockedBlockSource.DoneCalls())
+//
+//	len(mockedBlockSource.DoneCalls())
 func (mock *BlockSourceMock) DoneCalls() []struct {
 } {
 	var calls []struct {
@@ -117,25 +119,25 @@ var _ events.BlockClient = &BlockClientMock{}
 
 // BlockClientMock is a mock implementation of events.BlockClient.
 //
-// 	func TestSomethingThatUsesBlockClient(t *testing.T) {
+//	func TestSomethingThatUsesBlockClient(t *testing.T) {
 //
-// 		// make and configure a mocked events.BlockClient
-// 		mockedBlockClient := &BlockClientMock{
-// 			LatestSyncInfoFunc: func(ctx context.Context) (*coretypes.SyncInfo, error) {
-// 				panic("mock out the LatestSyncInfo method")
-// 			},
-// 			SubscribeFunc: func(ctx context.Context, subscriber string, query string, outCapacity ...int) (<-chan coretypes.ResultEvent, error) {
-// 				panic("mock out the Subscribe method")
-// 			},
-// 			UnsubscribeFunc: func(ctx context.Context, subscriber string, query string) error {
-// 				panic("mock out the Unsubscribe method")
-// 			},
-// 		}
+//		// make and configure a mocked events.BlockClient
+//		mockedBlockClient := &BlockClientMock{
+//			LatestSyncInfoFunc: func(ctx context.Context) (*coretypes.SyncInfo, error) {
+//				panic("mock out the LatestSyncInfo method")
+//			},
+//			SubscribeFunc: func(ctx context.Context, subscriber string, query string, outCapacity ...int) (<-chan coretypes.ResultEvent, error) {
+//				panic("mock out the Subscribe method")
+//			},
+//			UnsubscribeFunc: func(ctx context.Context, subscriber string, query string) error {
+//				panic("mock out the Unsubscribe method")
+//			},
+//		}
 //
-// 		// use mockedBlockClient in code that requires events.BlockClient
-// 		// and then make assertions.
+//		// use mockedBlockClient in code that requires events.BlockClient
+//		// and then make assertions.
 //
-// 	}
+//	}
 type BlockClientMock struct {
 	// LatestSyncInfoFunc mocks the LatestSyncInfo method.
 	LatestSyncInfoFunc func(ctx context.Context) (*coretypes.SyncInfo, error)
@@ -197,7 +199,8 @@ func (mock *BlockClientMock) LatestSyncInfo(ctx context.Context) (*coretypes.Syn
 
 // LatestSyncInfoCalls gets all the calls that were made to LatestSyncInfo.
 // Check the length with:
-//     len(mockedBlockClient.LatestSyncInfoCalls())
+//
+//	len(mockedBlockClient.LatestSyncInfoCalls())
 func (mock *BlockClientMock) LatestSyncInfoCalls() []struct {
 	Ctx context.Context
 } {
@@ -234,7 +237,8 @@ func (mock *BlockClientMock) Subscribe(ctx context.Context, subscriber string, q
 
 // SubscribeCalls gets all the calls that were made to Subscribe.
 // Check the length with:
-//     len(mockedBlockClient.SubscribeCalls())
+//
+//	len(mockedBlockClient.SubscribeCalls())
 func (mock *BlockClientMock) SubscribeCalls() []struct {
 	Ctx         context.Context
 	Subscriber  string
@@ -275,7 +279,8 @@ func (mock *BlockClientMock) Unsubscribe(ctx context.Context, subscriber string,
 
 // UnsubscribeCalls gets all the calls that were made to Unsubscribe.
 // Check the length with:
-//     len(mockedBlockClient.UnsubscribeCalls())
+//
+//	len(mockedBlockClient.UnsubscribeCalls())
 func (mock *BlockClientMock) UnsubscribeCalls() []struct {
 	Ctx        context.Context
 	Subscriber string
@@ -298,19 +303,19 @@ var _ events.BlockResultClient = &BlockResultClientMock{}
 
 // BlockResultClientMock is a mock implementation of events.BlockResultClient.
 //
-// 	func TestSomethingThatUsesBlockResultClient(t *testing.T) {
+//	func TestSomethingThatUsesBlockResultClient(t *testing.T) {
 //
-// 		// make and configure a mocked events.BlockResultClient
-// 		mockedBlockResultClient := &BlockResultClientMock{
-// 			BlockResultsFunc: func(ctx context.Context, height *int64) (*coretypes.ResultBlockResults, error) {
-// 				panic("mock out the BlockResults method")
-// 			},
-// 		}
+//		// make and configure a mocked events.BlockResultClient
+//		mockedBlockResultClient := &BlockResultClientMock{
+//			BlockResultsFunc: func(ctx context.Context, height *int64) (*coretypes.ResultBlockResults, error) {
+//				panic("mock out the BlockResults method")
+//			},
+//		}
 //
-// 		// use mockedBlockResultClient in code that requires events.BlockResultClient
-// 		// and then make assertions.
+//		// use mockedBlockResultClient in code that requires events.BlockResultClient
+//		// and then make assertions.
 //
-// 	}
+//	}
 type BlockResultClientMock struct {
 	// BlockResultsFunc mocks the BlockResults method.
 	BlockResultsFunc func(ctx context.Context, height *int64) (*coretypes.ResultBlockResults, error)
@@ -348,7 +353,8 @@ func (mock *BlockResultClientMock) BlockResults(ctx context.Context, height *int
 
 // BlockResultsCalls gets all the calls that were made to BlockResults.
 // Check the length with:
-//     len(mockedBlockResultClient.BlockResultsCalls())
+//
+//	len(mockedBlockResultClient.BlockResultsCalls())
 func (mock *BlockResultClientMock) BlockResultsCalls() []struct {
 	Ctx    context.Context
 	Height *int64
@@ -369,22 +375,22 @@ var _ events.BlockNotifier = &BlockNotifierMock{}
 
 // BlockNotifierMock is a mock implementation of events.BlockNotifier.
 //
-// 	func TestSomethingThatUsesBlockNotifier(t *testing.T) {
+//	func TestSomethingThatUsesBlockNotifier(t *testing.T) {
 //
-// 		// make and configure a mocked events.BlockNotifier
-// 		mockedBlockNotifier := &BlockNotifierMock{
-// 			BlockHeightsFunc: func(ctx context.Context) (<-chan int64, <-chan error) {
-// 				panic("mock out the BlockHeights method")
-// 			},
-// 			DoneFunc: func() <-chan struct{} {
-// 				panic("mock out the Done method")
-// 			},
-// 		}
+//		// make and configure a mocked events.BlockNotifier
+//		mockedBlockNotifier := &BlockNotifierMock{
+//			BlockHeightsFunc: func(ctx context.Context) (<-chan int64, <-chan error) {
+//				panic("mock out the BlockHeights method")
+//			},
+//			DoneFunc: func() <-chan struct{} {
+//				panic("mock out the Done method")
+//			},
+//		}
 //
-// 		// use mockedBlockNotifier in code that requires events.BlockNotifier
-// 		// and then make assertions.
+//		// use mockedBlockNotifier in code that requires events.BlockNotifier
+//		// and then make assertions.
 //
-// 	}
+//	}
 type BlockNotifierMock struct {
 	// BlockHeightsFunc mocks the BlockHeights method.
 	BlockHeightsFunc func(ctx context.Context) (<-chan int64, <-chan error)
@@ -425,7 +431,8 @@ func (mock *BlockNotifierMock) BlockHeights(ctx context.Context) (<-chan int64, 
 
 // BlockHeightsCalls gets all the calls that were made to BlockHeights.
 // Check the length with:
-//     len(mockedBlockNotifier.BlockHeightsCalls())
+//
+//	len(mockedBlockNotifier.BlockHeightsCalls())
 func (mock *BlockNotifierMock) BlockHeightsCalls() []struct {
 	Ctx context.Context
 } {
@@ -453,7 +460,8 @@ func (mock *BlockNotifierMock) Done() <-chan struct{} {
 
 // DoneCalls gets all the calls that were made to Done.
 // Check the length with:
-//     len(mockedBlockNotifier.DoneCalls())
+//
+//	len(mockedBlockNotifier.DoneCalls())
 func (mock *BlockNotifierMock) DoneCalls() []struct {
 } {
 	var calls []struct {
