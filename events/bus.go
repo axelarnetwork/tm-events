@@ -2,9 +2,9 @@ package events
 
 import (
 	"context"
-
-	"github.com/tendermint/tendermint/libs/log"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+
+	"github.com/axelarnetwork/utils/log"
 
 	"github.com/axelarnetwork/tm-events/pubsub"
 )
@@ -12,17 +12,15 @@ import (
 // Bus represents an object that receives blocks from a tendermint server and manages queries for events in those blocks
 type Bus struct {
 	source BlockSource
-	logger log.Logger
 	done   chan struct{}
 	bus    pubsub.Bus[ABCIEventWithHeight]
 }
 
 // NewEventBus returns a new event bus instance
-func NewEventBus(source BlockSource, bus pubsub.Bus[ABCIEventWithHeight], logger log.Logger) *Bus {
+func NewEventBus(source BlockSource, bus pubsub.Bus[ABCIEventWithHeight]) *Bus {
 	return &Bus{
 		bus:    bus,
 		source: source,
-		logger: logger.With("publisher", "events"),
 		done:   make(chan struct{}),
 	}
 }
@@ -30,6 +28,8 @@ func NewEventBus(source BlockSource, bus pubsub.Bus[ABCIEventWithHeight], logger
 // FetchEvents asynchronously queries the blockchain for new blocks and publishes all txs events in those blocks to the event manager's subscribers.
 // Any occurring errors are pushed into the returned error channel.
 func (b *Bus) FetchEvents(ctx context.Context) <-chan error {
+	log.AppendKeyVals(ctx, "publisher", "events")
+
 	// either the block source or the event manager could push an error at the same time, so we need to make sure we don't block
 	errChan := make(chan error, 2)
 
@@ -37,14 +37,14 @@ func (b *Bus) FetchEvents(ctx context.Context) <-chan error {
 	blockResults, blockErrs := b.source.BlockResults(ctx)
 
 	go func() {
-		defer b.logger.Info("shutting down")
+		defer log.FromCtx(ctx).Info("shutting down")
 
 		for {
 			select {
 			case block, ok := <-blockResults:
 				if !ok {
 					shutdown()
-				} else if err := b.publish(block); err != nil {
+				} else if err := b.publish(ctx, block); err != nil {
 					errChan <- err
 					shutdown()
 				}
@@ -52,7 +52,7 @@ func (b *Bus) FetchEvents(ctx context.Context) <-chan error {
 				errChan <- err
 				shutdown()
 			case <-ctx.Done():
-				b.logger.Info("closing all subscriptions")
+				log.FromCtx(ctx).Info("closing all subscriptions")
 				b.bus.Close()
 
 				<-b.bus.Done()
@@ -76,7 +76,9 @@ func (b *Bus) Done() <-chan struct{} {
 	return b.done
 }
 
-func (b *Bus) publish(block *coretypes.ResultBlockResults) error {
+func (b *Bus) publish(ctx context.Context, block *coretypes.ResultBlockResults) error {
+	ctx = log.AppendKeyVals(ctx, "block_height", block.Height)
+
 	// beginBlock and endBlock events are published together as block events
 	blockEvents := append(block.BeginBlockEvents, block.EndBlockEvents...)
 	for _, event := range blockEvents {
@@ -100,7 +102,6 @@ func (b *Bus) publish(block *coretypes.ResultBlockResults) error {
 			}
 		}
 	}
-
-	b.logger.Debug("published all events for block", "block_height", block.Height)
+	log.FromCtx(ctx).Debug("published all events for block")
 	return nil
 }

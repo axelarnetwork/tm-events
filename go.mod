@@ -8,12 +8,12 @@ require (
 	github.com/cucumber/godog v0.12.5
 	github.com/go-errors/errors v1.4.2
 	github.com/gogo/protobuf v1.3.3
-	github.com/matryer/moq v0.2.7
+	github.com/matryer/moq v0.3.1
 	github.com/smallnest/chanx v1.0.1-0.20211205150931-349643806662
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
 	github.com/tendermint/tendermint v0.34.21
-	golang.org/x/tools v0.1.12
+	golang.org/x/tools v0.3.0
 )
 
 require (
@@ -77,11 +77,11 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	golang.org/x/crypto v0.0.0-20221012134737-56aed061732a // indirect
 	golang.org/x/exp v0.0.0-20221018221608-02f3b879a704 // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/net v0.0.0-20220726230323-06994584191e // indirect
+	golang.org/x/mod v0.7.0 // indirect
+	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.1.0 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20220725144611-272f38e5d71b // indirect
 	google.golang.org/grpc v1.48.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
@@ -94,3 +94,5 @@ replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alp
 
 // Fix DragonBerry vulnerability
 replace github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
+
+replace github.com/axelarnetwork/utils => ../utils

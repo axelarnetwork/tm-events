@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tendermint/tendermint/libs/log"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	testutils "github.com/axelarnetwork/utils/test"
@@ -31,7 +30,7 @@ func TestBus_FetchEvents(t *testing.T) {
 				return done
 			},
 		}
-		bus := events.NewEventBus(source, pubsub.NewBus[events.ABCIEventWithHeight](), log.TestingLogger())
+		bus := events.NewEventBus(source, pubsub.NewBus[events.ABCIEventWithHeight]())
 
 		errChan := bus.FetchEvents(context.Background())
 
@@ -53,7 +52,7 @@ func TestBus_FetchEvents(t *testing.T) {
 				return done
 			},
 		}
-		bus := events.NewEventBus(source, pubsub.NewBus[events.ABCIEventWithHeight](), log.TestingLogger())
+		bus := events.NewEventBus(source, pubsub.NewBus[events.ABCIEventWithHeight]())
 
 		bus.FetchEvents(context.Background())
 
@@ -82,7 +81,7 @@ func TestBus_Subscribe(t *testing.T) {
 			return newBlocks, nil
 		}}
 
-		bus = events.NewEventBus(source, pubsub.NewBus[events.ABCIEventWithHeight](), log.TestingLogger())
+		bus = events.NewEventBus(source, pubsub.NewBus[events.ABCIEventWithHeight]())
 	}
 
 	repeats := 20
