@@ -347,7 +347,7 @@ func (b *Notifier) getLatestBlockHeight() (int64, error) {
 // BlockHeights returns a channel with the block heights from the beginning of the chain to all newly discovered blocks.
 // Optionally, starts at the given start block.
 func (b *Notifier) BlockHeights(ctx context.Context) (<-chan int64, <-chan error) {
-	ctx = log.AppendKeyVals(ctx, "listener", "block notifier")
+	ctx = log.Append(ctx, "listener", "block notifier")
 
 	errChan := make(chan error, 1)
 	var shutdown context.CancelFunc
@@ -475,7 +475,7 @@ func (b *blockSource) Done() <-chan struct{} {
 
 // BlockResults returns a channel of block results. Blocks are pushed into the channel sequentially as they are discovered
 func (b *blockSource) BlockResults(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error) {
-	ctx = log.AppendKeyVals(ctx, "listener", "block results")
+	ctx = log.Append(ctx, "listener", "block results")
 
 	// either the notifier or the block source could push an error at the same time, so we need to make sure we don't block
 	errChan := make(chan error, 2)

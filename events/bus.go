@@ -29,7 +29,7 @@ func NewEventBus(source BlockSource, bus pubsub.Bus[ABCIEventWithHeight]) *Bus {
 // FetchEvents asynchronously queries the blockchain for new blocks and publishes all txs events in those blocks to the event manager's subscribers.
 // Any occurring errors are pushed into the returned error channel.
 func (b *Bus) FetchEvents(ctx context.Context) <-chan error {
-	ctx = log.AppendKeyVals(ctx, "publisher", "events")
+	ctx = log.Append(ctx, "publisher", "events")
 
 	// either the block source or the event manager could push an error at the same time, so we need to make sure we don't block
 	errChan := make(chan error, 2)
@@ -78,7 +78,7 @@ func (b *Bus) Done() <-chan struct{} {
 }
 
 func (b *Bus) publish(ctx context.Context, block *coretypes.ResultBlockResults) error {
-	ctx = log.AppendKeyVals(ctx, "block_height", block.Height)
+	ctx = log.Append(ctx, "block_height", block.Height)
 
 	// beginBlock and endBlock events are published together as block events
 	blockEvents := append(block.BeginBlockEvents, block.EndBlockEvents...)
