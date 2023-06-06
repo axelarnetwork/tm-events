@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
-	"github.com/axelarnetwork/utils/log"
 	"os"
 	"sync"
+
+	"github.com/axelarnetwork/utils/log"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"

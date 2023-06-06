@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/axelarnetwork/utils/log"
