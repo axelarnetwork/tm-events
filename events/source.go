@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/libs/pubsub/query"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+
+	"github.com/axelarnetwork/utils/log"
+
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/tendermint/tendermint/libs/pubsub/query"
 	tm "github.com/tendermint/tendermint/types"
 
 	"github.com/axelarnetwork/utils"
@@ -78,7 +80,6 @@ type BlockNotifier interface {
 }
 
 type eventblockNotifier struct {
-	logger            log.Logger
 	client            SubscriptionClient
 	query             string
 	timeout           time.Duration
@@ -88,14 +89,13 @@ type eventblockNotifier struct {
 	done              chan struct{}
 }
 
-func newEventBlockNotifier(client SubscriptionClient, logger log.Logger, options ...DialOption) *eventblockNotifier {
+func newEventBlockNotifier(client SubscriptionClient, options ...DialOption) *eventblockNotifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
 	}
 	return &eventblockNotifier{
 		client:            client,
-		logger:            logger,
 		query:             query.MustParse(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)).String(),
 		backOff:           opts.backOff,
 		timeout:           opts.timeout,
@@ -115,7 +115,7 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 		defer close(b.done)
 		defer func() { keepAliveCancel() }() // the cancel function gets reassigned, so call it indirectly
 		defer close(blocks)
-		defer b.logger.Info("stopped listening to events")
+		defer log.FromCtx(ctx).Info("stopped listening to events")
 		defer b.tryUnsubscribe(context.Background(), b.timeout)
 
 		eventChan, err := b.subscribe(ctx)
@@ -129,7 +129,7 @@ func (b *eventblockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 			var blockHeaderEvent tm.EventDataNewBlockHeader
 			select {
 			case <-keepAlive.Done():
-				b.logger.Debug(fmt.Sprintf("no block event in %.2f seconds", b.keepAliveInterval.Seconds()))
+				log.FromCtx(ctx).Debug(fmt.Sprintf("no block event in %.2f seconds", b.keepAliveInterval.Seconds()))
 				b.tryUnsubscribe(ctx, b.timeout)
 				eventChan, err = b.subscribe(ctx)
 				if err != nil {
@@ -167,10 +167,10 @@ func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.Re
 		eventChan, err := b.client.Subscribe(ctx, "", b.query, WebsocketQueueSize)
 		cancel()
 		if err == nil {
-			b.logger.Debug(fmt.Sprintf("subscribed to query \"%s\"", b.query))
+			log.FromCtx(ctx).Debug(fmt.Sprintf("subscribed to query \"%s\"", b.query))
 			return eventChan, nil
 		}
-		b.logger.Debug(sdkerrors.Wrapf(err, "failed to subscribe to query \"%s\", attempt %d", b.query, i+1).Error())
+		log.FromCtx(ctx).Debug(sdkerrors.Wrapf(err, "failed to subscribe to query \"%s\", attempt %d", b.query, i+1).Error())
 		time.Sleep(backOff(i))
 	}
 	return nil, fmt.Errorf("aborting Tendermint block header subscription after %d attemts ", b.retries+1)
@@ -187,10 +187,10 @@ func (b *eventblockNotifier) tryUnsubscribe(ctx context.Context, timeout time.Du
 	// this unsubscribe is a best-effort action, we still try to continue as usual if it fails, so errors are only logged
 	err := b.client.Unsubscribe(ctx, "", b.query)
 	if err != nil {
-		b.logger.Info(sdkerrors.Wrapf(err, "could not unsubscribe from query \"%s\"", b.query).Error())
+		log.FromCtx(ctx).Info(sdkerrors.Wrapf(err, "could not unsubscribe from query \"%s\"", b.query).Error())
 		return
 	}
-	b.logger.Debug(fmt.Sprintf("unsubscribed from query \"%s\"", b.query))
+	log.FromCtx(ctx).Debug(fmt.Sprintf("unsubscribed from query \"%s\"", b.query))
 }
 
 func (b *eventblockNotifier) Done() chan struct{} {
@@ -206,10 +206,9 @@ type queryBlockNotifier struct {
 	timeout           time.Duration
 	backOff           time.Duration
 	keepAliveInterval time.Duration
-	logger            log.Logger
 }
 
-func newQueryBlockNotifier(client SyncInfoClient, logger log.Logger, options ...DialOption) *queryBlockNotifier {
+func newQueryBlockNotifier(client SyncInfoClient, options ...DialOption) *queryBlockNotifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
@@ -221,7 +220,6 @@ func newQueryBlockNotifier(client SyncInfoClient, logger log.Logger, options ...
 		backOff:           opts.backOff,
 		timeout:           opts.timeout,
 		keepAliveInterval: opts.keepAlive,
-		logger:            logger,
 	}
 }
 
@@ -231,7 +229,7 @@ func (q *queryBlockNotifier) BlockHeights(ctx context.Context) (<-chan int64, <-
 
 	go func() {
 		defer close(blocks)
-		defer q.logger.Info("stopped block query")
+		defer log.FromCtx(ctx).Info("stopped block query")
 
 		keepAlive, keepAliveCancel := ctxWithTimeout(context.Background(), q.keepAliveInterval)
 		defer func() { keepAliveCancel() }() // the cancel function might get reassigned, so call it indirectly
@@ -272,7 +270,7 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 			return syncInfo.LatestBlockHeight, nil
 		}
 
-		q.logger.Info(sdkerrors.Wrapf(err, "failed to retrieve node status, attempt %d", i+1).Error())
+		log.FromCtx(ctx).Info(sdkerrors.Wrapf(err, "failed to retrieve node status, attempt %d", i+1).Error())
 		time.Sleep(backOff(i))
 	}
 	return 0, fmt.Errorf("aborting sync status retrieval after %d attemts ", q.retries+1)
@@ -299,12 +297,9 @@ var _ BlockNotifier = &Notifier{}
 
 // Notifier can notify a consumer about new blocks
 type Notifier struct {
-	logger         log.Logger
 	client         BlockClient
 	queryNotifier  *queryBlockNotifier
 	eventsNotifier *eventblockNotifier
-	running        context.Context
-	shutdown       context.CancelFunc
 	start          int64
 	timeout        time.Duration
 }
@@ -316,19 +311,17 @@ func (b *Notifier) Done() <-chan struct{} {
 
 // NewBlockNotifier returns a new BlockNotifier instance.
 // It accepts dial options that configure the request management behaviour.
-func NewBlockNotifier(client BlockClient, logger log.Logger, options ...DialOption) *Notifier {
+func NewBlockNotifier(client BlockClient, options ...DialOption) *Notifier {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
 	}
 
-	logger = logger.With("listener", "block notifier")
 	return &Notifier{
 		client:         client,
-		logger:         logger,
 		timeout:        opts.timeout,
-		eventsNotifier: newEventBlockNotifier(client, logger, options...),
-		queryNotifier:  newQueryBlockNotifier(client, logger, options...),
+		eventsNotifier: newEventBlockNotifier(client, options...),
+		queryNotifier:  newQueryBlockNotifier(client, options...),
 	}
 }
 
@@ -354,8 +347,11 @@ func (b *Notifier) getLatestBlockHeight() (int64, error) {
 // BlockHeights returns a channel with the block heights from the beginning of the chain to all newly discovered blocks.
 // Optionally, starts at the given start block.
 func (b *Notifier) BlockHeights(ctx context.Context) (<-chan int64, <-chan error) {
+	ctx = log.Append(ctx, "listener", "block notifier")
+
 	errChan := make(chan error, 1)
-	b.running, b.shutdown = context.WithCancel(ctx)
+	var shutdown context.CancelFunc
+	ctx, shutdown = context.WithCancel(ctx)
 
 	// if no start block has been set explicitly try to fetch the latest block height
 	if b.start == 0 {
@@ -366,45 +362,47 @@ func (b *Notifier) BlockHeights(ctx context.Context) (<-chan int64, <-chan error
 		}
 	}
 
-	blocksFromQuery, queryErrs := b.queryNotifier.BlockHeights(b.running)
-	blocksFromEvents, eventErrs := b.eventsNotifier.BlockHeights(b.running)
+	blocksFromQuery, queryErrs := b.queryNotifier.BlockHeights(ctx)
+	blocksFromEvents, eventErrs := b.eventsNotifier.BlockHeights(ctx)
 
-	go b.handleErrors(eventErrs, queryErrs, errChan)
+	go handleErrors(ctx, shutdown, eventErrs, queryErrs, errChan)
 
-	b.logger.Info(fmt.Sprintf("syncing blocks starting with block %d", b.start))
+	log.FromCtx(ctx).Info(fmt.Sprintf("syncing blocks starting with block %d", b.start))
 
 	blocks := make(chan int64)
-	go b.pipeLatestBlock(blocksFromQuery, blocksFromEvents, blocks)
+	go b.pipeLatestBlock(ctx, blocksFromQuery, blocksFromEvents, blocks)
 
 	return blocks, errChan
 }
 
-func (b *Notifier) handleErrors(eventErrs <-chan error, queryErrs <-chan error, errChan chan error) {
-	defer b.shutdown()
+func handleErrors(ctx context.Context, shutdown context.CancelFunc, eventErrs <-chan error, queryErrs <-chan error, errChan chan error) {
+	defer shutdown()
 
 	for {
 		// the query notifier is more reliable but slower, so we still continue on as long as it's available
 		select {
+		case <-ctx.Done():
+			return
 		case err := <-queryErrs:
 			errChan <- err
 			return
 		case err := <-eventErrs:
-			b.logger.Error(sdkerrors.Wrapf(err, "cannot receive new blocks from events, falling back on querying actively for blocks").Error())
-		case <-b.running.Done():
-			return
+			log.FromCtx(ctx).Error(sdkerrors.Wrapf(err, "cannot receive new blocks from events, falling back on querying actively for blocks").Error())
 		}
 	}
 }
 
-func (b *Notifier) pipeLatestBlock(fromQuery <-chan int64, fromEvents <-chan int64, blockHeights chan int64) {
+func (b *Notifier) pipeLatestBlock(ctx context.Context, fromQuery <-chan int64, fromEvents <-chan int64, blockHeights chan int64) {
 	defer close(blockHeights)
-	defer b.logger.Info("stopped block sync")
+	defer log.FromCtx(ctx).Info("stopped block sync")
 
 	pendingBlockHeight := b.start
 	latestBlock := int64(0)
 	for {
 		for {
 			select {
+			case <-ctx.Done():
+				return
 			case block := <-fromQuery:
 				if latestBlock > block || pendingBlockHeight > block {
 					continue
@@ -415,20 +413,18 @@ func (b *Notifier) pipeLatestBlock(fromQuery <-chan int64, fromEvents <-chan int
 					continue
 				}
 				latestBlock = block
-			case <-b.running.Done():
-				return
 			}
 			break
 		}
 
-		b.logger.Debug(fmt.Sprintf("found latest block %d", latestBlock))
+		log.FromCtx(ctx).Debug(fmt.Sprintf("found latest block %d", latestBlock))
 
 		for pendingBlockHeight <= latestBlock {
 			select {
+			case <-ctx.Done():
+				return
 			case blockHeights <- pendingBlockHeight:
 				pendingBlockHeight++
-			case <-b.running.Done():
-				return
 			}
 		}
 	}
@@ -444,8 +440,6 @@ type blockSource struct {
 	notifier BlockNotifier
 	client   BlockResultClient
 	shutdown context.CancelFunc
-	running  context.Context
-	logger   log.Logger
 
 	// dial options
 	retries int
@@ -460,7 +454,7 @@ type BlockResultClient interface {
 
 // NewBlockSource returns a new BlockSource instance.
 // It accepts dial options that configure the request management behaviour.
-func NewBlockSource(client BlockResultClient, notifier BlockNotifier, logger log.Logger, options ...DialOption) BlockSource {
+func NewBlockSource(client BlockResultClient, notifier BlockNotifier, options ...DialOption) BlockSource {
 	var opts dialOptions
 	for _, option := range options {
 		opts = option.apply(opts)
@@ -472,7 +466,6 @@ func NewBlockSource(client BlockResultClient, notifier BlockNotifier, logger log
 		retries:  opts.retries,
 		backOff:  opts.backOff,
 		timeout:  opts.timeout,
-		logger:   logger.With("listener", "block results"),
 	}
 }
 
@@ -482,12 +475,14 @@ func (b *blockSource) Done() <-chan struct{} {
 
 // BlockResults returns a channel of block results. Blocks are pushed into the channel sequentially as they are discovered
 func (b *blockSource) BlockResults(ctx context.Context) (<-chan *coretypes.ResultBlockResults, <-chan error) {
+	ctx = log.Append(ctx, "listener", "block results")
+
 	// either the notifier or the block source could push an error at the same time, so we need to make sure we don't block
 	errChan := make(chan error, 2)
 	// notifier is an external dependency, so it's lifetime should be managed by the calling process, i.e. the given context, as well
 	blockHeights, notifyErrs := b.notifier.BlockHeights(ctx)
 
-	b.running, b.shutdown = context.WithCancel(ctx)
+	ctx, b.shutdown = context.WithCancel(ctx)
 	go func() {
 		defer b.shutdown()
 
@@ -501,12 +496,12 @@ func (b *blockSource) BlockResults(ctx context.Context) (<-chan *coretypes.Resul
 	}()
 
 	blockResults := make(chan *coretypes.ResultBlockResults)
-	go b.streamBlockResults(blockHeights, blockResults, errChan)
+	go b.streamBlockResults(ctx, blockHeights, blockResults, errChan)
 
 	return blockResults, errChan
 }
 
-func (b *blockSource) streamBlockResults(blockHeights <-chan int64, blocks chan *coretypes.ResultBlockResults, errChan chan error) {
+func (b *blockSource) streamBlockResults(ctx context.Context, blockHeights <-chan int64, blocks chan *coretypes.ResultBlockResults, errChan chan error) {
 	defer close(blocks)
 	defer b.shutdown()
 
@@ -517,32 +512,32 @@ func (b *blockSource) streamBlockResults(blockHeights <-chan int64, blocks chan 
 				errChan <- fmt.Errorf("cannot detect new blocks anymore")
 				return
 			}
-			result, err := b.fetchBlockResults(&height)
+			result, err := b.fetchBlockResults(ctx, &height)
 			if err != nil {
 				errChan <- err
 				return
 			}
 
 			blocks <- result
-		case <-b.running.Done():
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (b *blockSource) fetchBlockResults(height *int64) (*coretypes.ResultBlockResults, error) {
+func (b *blockSource) fetchBlockResults(ctx context.Context, height *int64) (*coretypes.ResultBlockResults, error) {
 	// if the client connection or subscription setup fails then retry
 	backOff := utils.LinearBackOff(b.backOff)
 	for i := 0; i <= b.retries; i++ {
-		ctx, cancel := ctxWithTimeout(b.running, b.timeout)
+		ctx, cancel := ctxWithTimeout(ctx, b.timeout)
 
 		res, err := b.client.BlockResults(ctx, height)
 		cancel()
 		if err == nil {
-			b.logger.Debug(fmt.Sprintf("fetched result for block height %d", *height))
+			log.FromCtx(ctx).Debugf("fetched result for block height %d", *height)
 			return res, nil
 		}
-		b.logger.Debug(sdkerrors.Wrapf(err, "failed to result for block height %d, attempt %d", *height, i+1).Error())
+		log.FromCtx(ctx).Debug(sdkerrors.Wrapf(err, "failed to result for block height %d, attempt %d", *height, i+1).Error())
 		time.Sleep(backOff(i))
 	}
 	return nil, fmt.Errorf("aborting block result fetching after %d attemts ", b.retries+1)

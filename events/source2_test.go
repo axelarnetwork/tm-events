@@ -12,7 +12,6 @@ import (
 	"github.com/cucumber/godog"
 	"github.com/stretchr/testify/assert"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tm "github.com/tendermint/tendermint/types"
 
@@ -51,7 +50,7 @@ func (t *testEnv) Context() error {
 }
 
 func (t *testEnv) BlockNotifierStartingAtBlock(start int64) error {
-	t.notifier = events.NewBlockNotifier(t.notifierClient, log.TestingLogger(),
+	t.notifier = events.NewBlockNotifier(t.notifierClient,
 		events.Timeout(1*time.Millisecond), events.Retries(1), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
 	return nil
 }
@@ -230,7 +229,7 @@ func (t *testEnv) ResultsClient() error {
 }
 
 func (t *testEnv) BlockResultSource() error {
-	t.blockSource = events.NewBlockSource(t.resultsClient, t.notifierMock, log.TestingLogger(), events.Timeout(time.Second))
+	t.blockSource = events.NewBlockSource(t.resultsClient, t.notifierMock, events.Timeout(time.Second))
 	return nil
 }
 
