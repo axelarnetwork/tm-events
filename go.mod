@@ -3,7 +3,7 @@ module github.com/axelarnetwork/tm-events
 go 1.18
 
 require (
-	github.com/axelarnetwork/utils v0.0.0-20221019171941-b92ac0d3499b
+	github.com/axelarnetwork/utils v0.0.0-20230606142248-23c988c5cd64
 	github.com/cosmos/cosmos-sdk v0.45.9
 	github.com/cucumber/godog v0.12.5
 	github.com/go-errors/errors v1.4.2
@@ -13,7 +13,7 @@ require (
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
 	github.com/tendermint/tendermint v0.34.21
-	golang.org/x/tools v0.3.0
+	golang.org/x/tools v0.9.3
 )
 
 require (
@@ -77,11 +77,11 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	golang.org/x/crypto v0.0.0-20221012134737-56aed061732a // indirect
 	golang.org/x/exp v0.0.0-20221018221608-02f3b879a704 // indirect
-	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/net v0.2.0 // indirect
-	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.2.0 // indirect
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/mod v0.10.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sync v0.2.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/genproto v0.0.0-20220725144611-272f38e5d71b // indirect
 	google.golang.org/grpc v1.48.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
