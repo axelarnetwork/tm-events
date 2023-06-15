@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tendermint/tendermint/libs/log"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tm "github.com/tendermint/tendermint/types"
 
@@ -28,8 +27,7 @@ func TestBlockNotifier_BlockHeights(t *testing.T) {
 			return nil, nil
 		}
 		start := rand.I64Between(0, 1000000)
-		notifier := events.NewBlockNotifier(client, log.TestingLogger(),
-			events.Timeout(1*time.Second), events.Retries(1), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
+		notifier := events.NewBlockNotifier(client, events.Timeout(1*time.Second), events.Retries(1), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
 
 		newBlockCount := rand.I64Between(1, 20)
 
@@ -55,8 +53,7 @@ func TestBlockNotifier_BlockHeights(t *testing.T) {
 	t.Run("GIVEN only events are responsive THEN sync all blocks", testutils.Func(func(t *testing.T) {
 		client := NewClientMock()
 		start := rand.I64Between(0, 1000000)
-		notifier := events.NewBlockNotifier(client, log.TestingLogger(),
-			events.Timeout(1*time.Millisecond), events.Retries(1), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
+		notifier := events.NewBlockNotifier(client, events.Timeout(1*time.Millisecond), events.Retries(1), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
 
 		receivedBlocks, errChan := notifier.BlockHeights(context.Background())
 
@@ -83,7 +80,7 @@ func TestBlockNotifier_BlockHeights(t *testing.T) {
 	t.Run("GIVEN context is canceled THEN shutdown gracefully", testutils.Func(func(t *testing.T) {
 		client := NewClientMock()
 		start := rand.I64Between(0, 1000000)
-		notifier := events.NewBlockNotifier(client, log.TestingLogger(),
+		notifier := events.NewBlockNotifier(client,
 			events.Timeout(1*time.Millisecond), events.Retries(1), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
 
 		ctx, cancelMainCtx := context.WithCancel(context.Background())
@@ -135,7 +132,7 @@ func TestBlockNotifier_BlockHeights(t *testing.T) {
 			return nil, fmt.Errorf("some error")
 		}
 		start := rand.I64Between(0, 1000000)
-		notifier := events.NewBlockNotifier(client, log.TestingLogger(), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
+		notifier := events.NewBlockNotifier(client, events.KeepAlive(1*time.Millisecond)).StartingAt(start)
 
 		blocks, errChan := notifier.BlockHeights(context.Background())
 
@@ -169,7 +166,7 @@ func TestBlockNotifier_BlockHeights(t *testing.T) {
 			return nil, fmt.Errorf("some error")
 		}
 		start := rand.I64Between(0, 1000000)
-		notifier := events.NewBlockNotifier(client, log.TestingLogger(), events.KeepAlive(1*time.Millisecond)).StartingAt(start)
+		notifier := events.NewBlockNotifier(client, events.KeepAlive(1*time.Millisecond)).StartingAt(start)
 
 		blocks, errChan := notifier.BlockHeights(context.Background())
 
@@ -200,7 +197,7 @@ func TestBlockNotifier_BlockHeights(t *testing.T) {
 		start := rand.PosI64()
 		client.NextBlock(start)
 
-		notifier := events.NewBlockNotifier(client, log.TestingLogger(), events.KeepAlive(1*time.Millisecond)).StartingAt(-rand.PosI64())
+		notifier := events.NewBlockNotifier(client, events.KeepAlive(1*time.Millisecond)).StartingAt(-rand.PosI64())
 
 		blocks, errChan := notifier.BlockHeights(context.Background())
 

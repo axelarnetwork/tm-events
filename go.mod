@@ -13,7 +13,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.1
 	github.com/tendermint/tendermint v0.34.27
-	golang.org/x/tools v0.4.0
+	golang.org/x/tools v0.9.3
 )
 
 require (

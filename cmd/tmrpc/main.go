@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sync"
+
+	"github.com/axelarnetwork/utils/log"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
@@ -25,7 +26,7 @@ func main() {
 		endpoint string
 		eventBus *events.Bus
 	)
-	logger := tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("process", "tmrpc")
+	log.Setup(tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("process", "tmrpc"))
 
 	cmd := cobra.Command{
 		Use:              "tmrpc",
@@ -35,13 +36,13 @@ func main() {
 			resettableClient := tendermint.NewRobustClient(func() (client.Client, error) {
 				cl, err := tendermint.StartClient(rpcURL, endpoint)
 				if err == nil {
-					logger.Info("connected tendermint client to " + rpcURL)
+					log.FromCtx(cmd.Context()).Info("connected tendermint client to " + rpcURL)
 				}
 				return cl, err
 			})
-			notifier := events.NewBlockNotifier(resettableClient, logger)
-			blockSource := events.NewBlockSource(resettableClient, notifier, logger)
-			eventBus = events.NewEventBus(blockSource, pubsub.NewBus[events.ABCIEventWithHeight](), logger)
+			notifier := events.NewBlockNotifier(resettableClient)
+			blockSource := events.NewBlockSource(resettableClient, notifier)
+			eventBus = events.NewEventBus(blockSource, pubsub.NewBus[events.ABCIEventWithHeight]())
 			return nil
 		},
 	}
@@ -50,24 +51,23 @@ func main() {
 	cmd.PersistentFlags().StringVar(&endpoint, "endpoint", tendermint.DefaultWSEndpoint, "websocket endpoint")
 
 	cmd.AddCommand(
-		CmdWaitEvent(&eventBus, logger),
+		CmdWaitEvent(&eventBus),
 	)
 
 	if err := cmd.Execute(); err != nil {
-		logger.Error(err.Error())
+		log.FromCtx(cmd.Context()).Error(err.Error())
 		os.Exit(1)
 	}
 }
 
 // CmdWaitEvent returns a cli command to wait for a specific event
-func CmdWaitEvent(busPtr **events.Bus, logger tmlog.Logger) *cobra.Command {
+func CmdWaitEvent(busPtr **events.Bus) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "wait-event <event type> <module> [action]",
 		Short: "Wait for the next matching event",
 		Args:  cobra.RangeArgs(2, 3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eventBus := *busPtr
-			shutdownBus := startFetchingEvents(eventBus, logger)
 
 			eventType := args[0]
 			module := args[1]
@@ -82,12 +82,15 @@ func CmdWaitEvent(busPtr **events.Bus, logger tmlog.Logger) *cobra.Command {
 				logKeyVals = append(logKeyVals, "action", action)
 			}
 
-			logger.Debug("waiting for event", logKeyVals...)
+			ctx := log.AppendKeyVals(cmd.Context(), logKeyVals)
+			shutdownBus := startFetchingEvents(ctx, eventBus)
+
+			log.FromCtx(ctx).Debug("waiting for event")
 			sub := eventBus.Subscribe(funcs.Compose(events.Map, events.QueryEventByAttributes(eventType, module, attributes...)))
 			once := sync.Once{}
 			job := events.Consume(chans.Map(sub, events.Map), func(e events.Event) {
 				once.Do(func() {
-					logger.Debug(fmt.Sprintf("found event %v", e), logKeyVals...)
+					log.FromCtx(ctx).Debugf("found event %v", e)
 					shutdownBus()
 					<-eventBus.Done()
 				})
@@ -103,18 +106,18 @@ func CmdWaitEvent(busPtr **events.Bus, logger tmlog.Logger) *cobra.Command {
 	return cmd
 }
 
-func startFetchingEvents(eventBus *events.Bus, logger tmlog.Logger) context.CancelFunc {
-	ctx, shutdownBus := context.WithCancel(context.Background())
+func startFetchingEvents(ctx context.Context, eventBus *events.Bus) context.CancelFunc {
+	ctx, shutdownBus := context.WithCancel(ctx)
 	errs := eventBus.FetchEvents(ctx)
 
-	go func() {
+	go func(ctx context.Context) {
 		select {
 		case err := <-errs:
-			logger.Error(err.Error())
+			log.FromCtx(ctx).Error(err.Error())
 			shutdownBus()
 		case <-ctx.Done():
 			return
 		}
-	}()
+	}(ctx)
 	return shutdownBus
 }
