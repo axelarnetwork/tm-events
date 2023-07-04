@@ -1,9 +1,10 @@
 package events
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"testing"
 )
 
 func TestEventMarshalling(t *testing.T) {
