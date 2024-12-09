@@ -3,8 +3,8 @@ package events
 import (
 	"testing"
 
+	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/stretchr/testify/assert"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 func TestEventMarshalling(t *testing.T) {
@@ -13,7 +13,7 @@ func TestEventMarshalling(t *testing.T) {
 		Event: abci.Event{
 			Type: "eventType",
 			Attributes: []abci.EventAttribute{
-				{Key: []byte("key1"), Value: []byte("value1")},
+				{Key: "key1", Value: "value1"},
 			},
 		},
 	}

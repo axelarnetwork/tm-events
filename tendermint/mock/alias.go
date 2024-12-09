@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/tendermint/tendermint/rpc/client"
+import "github.com/cometbft/cometbft/rpc/client"
 
 //go:generate moq -pkg mock -out ./types.go  . Client
 

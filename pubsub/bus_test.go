@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cometbft/cometbft/crypto"
+	"github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	pubsub2 "github.com/axelarnetwork/tm-events/pubsub"
 )

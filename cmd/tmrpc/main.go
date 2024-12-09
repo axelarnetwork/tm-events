@@ -7,10 +7,10 @@ import (
 
 	"github.com/axelarnetwork/utils/log"
 
+	tmlog "github.com/cometbft/cometbft/libs/log"
+	"github.com/cometbft/cometbft/rpc/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
-	tmlog "github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/axelarnetwork/tm-events/events"
 	"github.com/axelarnetwork/tm-events/pubsub"
@@ -32,7 +32,7 @@ func main() {
 		Use:              "tmrpc",
 		Short:            "Event listener",
 		TraverseChildren: true,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			resettableClient := tendermint.NewRobustClient(func() (client.Client, error) {
 				cl, err := tendermint.StartClient(rpcURL, endpoint)
 				if err == nil {

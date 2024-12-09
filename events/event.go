@@ -1,8 +1,8 @@
 package events
 
 import (
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/json"
+	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cometbft/cometbft/libs/json"
 )
 
 // Event stores type, module, action and attributes list of sdk
