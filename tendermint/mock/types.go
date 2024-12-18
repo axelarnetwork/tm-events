@@ -5,11 +5,11 @@ package mock
 
 import (
 	"context"
-	"github.com/tendermint/tendermint/libs/bytes"
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/rpc/client"
-	"github.com/tendermint/tendermint/rpc/core/types"
-	"github.com/tendermint/tendermint/types"
+	"github.com/cometbft/cometbft/libs/bytes"
+	"github.com/cometbft/cometbft/libs/log"
+	"github.com/cometbft/cometbft/rpc/client"
+	"github.com/cometbft/cometbft/rpc/core/types"
+	"github.com/cometbft/cometbft/types"
 	"sync"
 )
 
@@ -79,6 +79,12 @@ var _ Client = &ClientMock{}
 //			},
 //			GenesisChunkedFunc: func(contextMoqParam context.Context, v uint) (*coretypes.ResultGenesisChunk, error) {
 //				panic("mock out the GenesisChunked method")
+//			},
+//			HeaderFunc: func(ctx context.Context, height *int64) (*coretypes.ResultHeader, error) {
+//				panic("mock out the Header method")
+//			},
+//			HeaderByHashFunc: func(ctx context.Context, hash bytes.HexBytes) (*coretypes.ResultHeader, error) {
+//				panic("mock out the HeaderByHash method")
 //			},
 //			HealthFunc: func(contextMoqParam context.Context) (*coretypes.ResultHealth, error) {
 //				panic("mock out the Health method")
@@ -206,6 +212,12 @@ type ClientMock struct {
 
 	// GenesisChunkedFunc mocks the GenesisChunked method.
 	GenesisChunkedFunc func(contextMoqParam context.Context, v uint) (*coretypes.ResultGenesisChunk, error)
+
+	// HeaderFunc mocks the Header method.
+	HeaderFunc func(ctx context.Context, height *int64) (*coretypes.ResultHeader, error)
+
+	// HeaderByHashFunc mocks the HeaderByHash method.
+	HeaderByHashFunc func(ctx context.Context, hash bytes.HexBytes) (*coretypes.ResultHeader, error)
 
 	// HealthFunc mocks the Health method.
 	HealthFunc func(contextMoqParam context.Context) (*coretypes.ResultHealth, error)
@@ -411,6 +423,20 @@ type ClientMock struct {
 			// V is the v argument value.
 			V uint
 		}
+		// Header holds details about calls to the Header method.
+		Header []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Height is the height argument value.
+			Height *int64
+		}
+		// HeaderByHash holds details about calls to the HeaderByHash method.
+		HeaderByHash []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Hash is the hash argument value.
+			Hash bytes.HexBytes
+		}
 		// Health holds details about calls to the Health method.
 		Health []struct {
 			// ContextMoqParam is the contextMoqParam argument value.
@@ -552,6 +578,8 @@ type ClientMock struct {
 	lockDumpConsensusState   sync.RWMutex
 	lockGenesis              sync.RWMutex
 	lockGenesisChunked       sync.RWMutex
+	lockHeader               sync.RWMutex
+	lockHeaderByHash         sync.RWMutex
 	lockHealth               sync.RWMutex
 	lockIsRunning            sync.RWMutex
 	lockNetInfo              sync.RWMutex
@@ -1268,6 +1296,78 @@ func (mock *ClientMock) GenesisChunkedCalls() []struct {
 	mock.lockGenesisChunked.RLock()
 	calls = mock.calls.GenesisChunked
 	mock.lockGenesisChunked.RUnlock()
+	return calls
+}
+
+// Header calls HeaderFunc.
+func (mock *ClientMock) Header(ctx context.Context, height *int64) (*coretypes.ResultHeader, error) {
+	if mock.HeaderFunc == nil {
+		panic("ClientMock.HeaderFunc: method is nil but Client.Header was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		Height *int64
+	}{
+		Ctx:    ctx,
+		Height: height,
+	}
+	mock.lockHeader.Lock()
+	mock.calls.Header = append(mock.calls.Header, callInfo)
+	mock.lockHeader.Unlock()
+	return mock.HeaderFunc(ctx, height)
+}
+
+// HeaderCalls gets all the calls that were made to Header.
+// Check the length with:
+//
+//	len(mockedClient.HeaderCalls())
+func (mock *ClientMock) HeaderCalls() []struct {
+	Ctx    context.Context
+	Height *int64
+} {
+	var calls []struct {
+		Ctx    context.Context
+		Height *int64
+	}
+	mock.lockHeader.RLock()
+	calls = mock.calls.Header
+	mock.lockHeader.RUnlock()
+	return calls
+}
+
+// HeaderByHash calls HeaderByHashFunc.
+func (mock *ClientMock) HeaderByHash(ctx context.Context, hash bytes.HexBytes) (*coretypes.ResultHeader, error) {
+	if mock.HeaderByHashFunc == nil {
+		panic("ClientMock.HeaderByHashFunc: method is nil but Client.HeaderByHash was just called")
+	}
+	callInfo := struct {
+		Ctx  context.Context
+		Hash bytes.HexBytes
+	}{
+		Ctx:  ctx,
+		Hash: hash,
+	}
+	mock.lockHeaderByHash.Lock()
+	mock.calls.HeaderByHash = append(mock.calls.HeaderByHash, callInfo)
+	mock.lockHeaderByHash.Unlock()
+	return mock.HeaderByHashFunc(ctx, hash)
+}
+
+// HeaderByHashCalls gets all the calls that were made to HeaderByHash.
+// Check the length with:
+//
+//	len(mockedClient.HeaderByHashCalls())
+func (mock *ClientMock) HeaderByHashCalls() []struct {
+	Ctx  context.Context
+	Hash bytes.HexBytes
+} {
+	var calls []struct {
+		Ctx  context.Context
+		Hash bytes.HexBytes
+	}
+	mock.lockHeaderByHash.RLock()
+	calls = mock.calls.HeaderByHash
+	mock.lockHeaderByHash.RUnlock()
 	return calls
 }
 

@@ -6,7 +6,7 @@ package mock
 import (
 	"context"
 	"github.com/axelarnetwork/tm-events/events"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	"sync"
 )
 

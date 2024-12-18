@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
+	tm "github.com/cometbft/cometbft/types"
 	"github.com/stretchr/testify/assert"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-	tm "github.com/tendermint/tendermint/types"
 
 	testutils "github.com/axelarnetwork/utils/test"
 	"github.com/axelarnetwork/utils/test/rand"

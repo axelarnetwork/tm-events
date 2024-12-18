@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-
-	"github.com/axelarnetwork/utils/log"
-
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/tendermint/tendermint/libs/pubsub/query"
-	tm "github.com/tendermint/tendermint/types"
+	sdkerrors "cosmossdk.io/errors"
+	"github.com/cometbft/cometbft/libs/pubsub/query"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
+	tm "github.com/cometbft/cometbft/types"
 
 	"github.com/axelarnetwork/utils"
+	"github.com/axelarnetwork/utils/log"
 )
 
 //go:generate moq -pkg mock -out ./mock/source.go . BlockSource BlockClient BlockResultClient BlockNotifier

@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+	abci "github.com/cometbft/cometbft/abci/types"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
+	tm "github.com/cometbft/cometbft/types"
 	"github.com/cucumber/godog"
 	"github.com/stretchr/testify/assert"
-	abci "github.com/tendermint/tendermint/abci/types"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-	tm "github.com/tendermint/tendermint/types"
 
 	testutils "github.com/axelarnetwork/utils/test"
 	"github.com/axelarnetwork/utils/test/rand"
@@ -389,8 +389,8 @@ func randomAttributes(count int64) []abci.EventAttribute {
 	attributes := make([]abci.EventAttribute, 0, count)
 	for i := 0; i < cap(attributes); i++ {
 		attributes = append(attributes, abci.EventAttribute{
-			Key:   rand.BytesBetween(5, 100),
-			Value: rand.BytesBetween(5, 100),
+			Key:   rand.StrBetween(5, 100),
+			Value: rand.StrBetween(5, 100),
 			Index: rand.Bools(0.5).Next(),
 		})
 	}
