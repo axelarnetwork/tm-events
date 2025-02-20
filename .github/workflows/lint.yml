@@ -19,7 +19,7 @@ jobs:
           go-version: ${{ matrix.go-version }}
 
       - name: Install revive
-        run: go install github.com/mgechev/revive@latest
+        run: go install github.com/mgechev/revive@v1.3.9
 
       - name: Checkout code
         uses: actions/checkout@v3

@@ -32,7 +32,7 @@ func main() {
 		Use:              "tmrpc",
 		Short:            "Event listener",
 		TraverseChildren: true,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			resettableClient := tendermint.NewRobustClient(func() (client.Client, error) {
 				cl, err := tendermint.StartClient(rpcURL, endpoint)
 				if err == nil {
