@@ -80,9 +80,8 @@ func (b *Bus) Done() <-chan struct{} {
 func (b *Bus) publish(ctx context.Context, block *coretypes.ResultBlockResults) error {
 	ctx = log.Append(ctx, "block_height", block.Height)
 
-	// beginBlock and endBlock events are published together as block events
-	blockEvents := append(block.BeginBlockEvents, block.EndBlockEvents...)
-	for _, event := range blockEvents {
+	// beginBlock and endBlock events are published together as FinalizeBlock
+	for _, event := range block.FinalizeBlockEvents {
 		err := b.bus.Publish(ABCIEventWithHeight{
 			Height: block.Height,
 			Event:  event,

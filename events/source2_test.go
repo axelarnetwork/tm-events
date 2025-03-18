@@ -356,10 +356,10 @@ func TestBlockSource(t *testing.T) {
 	}
 }
 
-func randomTxResults(count int64) []*abci.ResponseDeliverTx {
-	resp := make([]*abci.ResponseDeliverTx, 0, count)
+func randomTxResults(count int64) []*abci.ExecTxResult {
+	resp := make([]*abci.ExecTxResult, 0, count)
 	for i := 0; i < cap(resp); i++ {
-		resp = append(resp, &abci.ResponseDeliverTx{
+		resp = append(resp, &abci.ExecTxResult{
 			Code:      mathRand.Uint32(),
 			Data:      rand.Bytes(int(rand.I64Between(100, 200))),
 			Log:       rand.StrBetween(5, 100),

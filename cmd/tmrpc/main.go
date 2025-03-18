@@ -5,8 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/axelarnetwork/utils/log"
-
+	sdklog "cosmossdk.io/log"
 	tmlog "github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/rpc/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -18,6 +17,7 @@ import (
 	"github.com/axelarnetwork/utils/chans"
 	"github.com/axelarnetwork/utils/funcs"
 	"github.com/axelarnetwork/utils/jobs"
+	"github.com/axelarnetwork/utils/log"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 		endpoint string
 		eventBus *events.Bus
 	)
-	log.Setup(tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)).With("process", "tmrpc"))
+	log.Setup(sdklog.NewLogger(tmlog.NewSyncWriter(os.Stdout)).With("process", "tmrpc"))
 
 	cmd := cobra.Command{
 		Use:              "tmrpc",

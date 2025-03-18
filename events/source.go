@@ -94,7 +94,7 @@ func newEventBlockNotifier(client SubscriptionClient, options ...DialOption) *ev
 	}
 	return &eventblockNotifier{
 		client:            client,
-		query:             query.MustParse(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)).String(),
+		query:             query.MustCompile(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)).String(),
 		backOff:           opts.backOff,
 		timeout:           opts.timeout,
 		retries:           opts.retries,
