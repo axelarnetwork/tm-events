@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	sdklog "cosmossdk.io/log"
+
 	"github.com/axelarnetwork/tm-events/events"
 	"github.com/axelarnetwork/tm-events/pubsub"
 	"github.com/axelarnetwork/tm-events/tendermint"
