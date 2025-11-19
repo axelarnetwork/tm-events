@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 
 	"github.com/axelarnetwork/utils/log"
 
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/tendermint/tendermint/libs/pubsub/query"
-	tm "github.com/tendermint/tendermint/types"
+	errorsmod "cosmossdk.io/errors"
+	"github.com/cometbft/cometbft/libs/pubsub/query"
+	tm "github.com/cometbft/cometbft/types"
 
 	"github.com/axelarnetwork/utils"
 )
@@ -96,7 +96,7 @@ func newEventBlockNotifier(client SubscriptionClient, options ...DialOption) *ev
 	}
 	return &eventblockNotifier{
 		client:            client,
-		query:             query.MustParse(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)).String(),
+		query:             query.MustCompile(fmt.Sprintf("%s='%s'", tm.EventTypeKey, tm.EventNewBlockHeader)).String(),
 		backOff:           opts.backOff,
 		timeout:           opts.timeout,
 		retries:           opts.retries,
@@ -170,7 +170,7 @@ func (b *eventblockNotifier) subscribe(ctx context.Context) (<-chan coretypes.Re
 			log.FromCtx(ctx).Debug(fmt.Sprintf("subscribed to query \"%s\"", b.query))
 			return eventChan, nil
 		}
-		log.FromCtx(ctx).Debug(sdkerrors.Wrapf(err, "failed to subscribe to query \"%s\", attempt %d", b.query, i+1).Error())
+		log.FromCtx(ctx).Debug(errorsmod.Wrapf(err, "failed to subscribe to query \"%s\", attempt %d", b.query, i+1).Error())
 		time.Sleep(backOff(i))
 	}
 	return nil, fmt.Errorf("aborting Tendermint block header subscription after %d attemts ", b.retries+1)
@@ -187,7 +187,7 @@ func (b *eventblockNotifier) tryUnsubscribe(ctx context.Context, timeout time.Du
 	// this unsubscribe is a best-effort action, we still try to continue as usual if it fails, so errors are only logged
 	err := b.client.Unsubscribe(ctx, "", b.query)
 	if err != nil {
-		log.FromCtx(ctx).Info(sdkerrors.Wrapf(err, "could not unsubscribe from query \"%s\"", b.query).Error())
+		log.FromCtx(ctx).Info(errorsmod.Wrapf(err, "could not unsubscribe from query \"%s\"", b.query).Error())
 		return
 	}
 	log.FromCtx(ctx).Debug(fmt.Sprintf("unsubscribed from query \"%s\"", b.query))
@@ -270,7 +270,7 @@ func (q *queryBlockNotifier) latestFromSyncStatus(ctx context.Context) (int64, e
 			return syncInfo.LatestBlockHeight, nil
 		}
 
-		log.FromCtx(ctx).Info(sdkerrors.Wrapf(err, "failed to retrieve node status, attempt %d", i+1).Error())
+		log.FromCtx(ctx).Info(errorsmod.Wrapf(err, "failed to retrieve node status, attempt %d", i+1).Error())
 		time.Sleep(backOff(i))
 	}
 	return 0, fmt.Errorf("aborting sync status retrieval after %d attemts ", q.retries+1)
@@ -387,7 +387,7 @@ func handleErrors(ctx context.Context, shutdown context.CancelFunc, eventErrs <-
 			errChan <- err
 			return
 		case err := <-eventErrs:
-			log.FromCtx(ctx).Error(sdkerrors.Wrapf(err, "cannot receive new blocks from events, falling back on querying actively for blocks").Error())
+			log.FromCtx(ctx).Error(errorsmod.Wrapf(err, "cannot receive new blocks from events, falling back on querying actively for blocks").Error())
 		}
 	}
 }
@@ -537,7 +537,7 @@ func (b *blockSource) fetchBlockResults(ctx context.Context, height *int64) (*co
 			log.FromCtx(ctx).Debugf("fetched result for block height %d", *height)
 			return res, nil
 		}
-		log.FromCtx(ctx).Debug(sdkerrors.Wrapf(err, "failed to result for block height %d, attempt %d", *height, i+1).Error())
+		log.FromCtx(ctx).Debug(errorsmod.Wrapf(err, "failed to result for block height %d, attempt %d", *height, i+1).Error())
 		time.Sleep(backOff(i))
 	}
 	return nil, fmt.Errorf("aborting block result fetching after %d attemts ", b.retries+1)

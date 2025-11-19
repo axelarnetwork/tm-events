@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+	abci "github.com/cometbft/cometbft/abci/types"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
+	tm "github.com/cometbft/cometbft/types"
 	"github.com/cucumber/godog"
 	"github.com/stretchr/testify/assert"
-	abci "github.com/tendermint/tendermint/abci/types"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-	tm "github.com/tendermint/tendermint/types"
 
 	testutils "github.com/axelarnetwork/utils/test"
 	"github.com/axelarnetwork/utils/test/rand"
@@ -211,7 +211,7 @@ loop:
 }
 
 func (t *testEnv) BlockNotifier() error {
-	t.notifierMock = NewNotifierMock()
+	t.notifierMock = newNotifierMock()
 	return nil
 }
 
@@ -356,10 +356,10 @@ func TestBlockSource(t *testing.T) {
 	}
 }
 
-func randomTxResults(count int64) []*abci.ResponseDeliverTx {
-	resp := make([]*abci.ResponseDeliverTx, 0, count)
+func randomTxResults(count int64) []*abci.ExecTxResult {
+	resp := make([]*abci.ExecTxResult, 0, count)
 	for i := 0; i < cap(resp); i++ {
-		resp = append(resp, &abci.ResponseDeliverTx{
+		resp = append(resp, &abci.ExecTxResult{
 			Code:      mathRand.Uint32(),
 			Data:      rand.Bytes(int(rand.I64Between(100, 200))),
 			Log:       rand.StrBetween(5, 100),
@@ -389,8 +389,8 @@ func randomAttributes(count int64) []abci.EventAttribute {
 	attributes := make([]abci.EventAttribute, 0, count)
 	for i := 0; i < cap(attributes); i++ {
 		attributes = append(attributes, abci.EventAttribute{
-			Key:   rand.BytesBetween(5, 100),
-			Value: rand.BytesBetween(5, 100),
+			Key:   rand.StrBetween(5, 100),
+			Value: rand.StrBetween(5, 100),
 			Index: rand.Bools(0.5).Next(),
 		})
 	}
@@ -403,7 +403,7 @@ type notifierMock struct {
 	errors chan error
 }
 
-func NewNotifierMock() *notifierMock {
+func newNotifierMock() *notifierMock {
 	notifier := &notifierMock{blocks: make(chan int64, 10000), errors: make(chan error, 10000)}
 	notifier.BlockNotifierMock = &mock.BlockNotifierMock{
 		BlockHeightsFunc: func(_ context.Context) (<-chan int64, <-chan error) {

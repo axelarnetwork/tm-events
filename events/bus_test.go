@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/stretchr/testify/assert"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	testutils "github.com/axelarnetwork/utils/test"
 	"github.com/axelarnetwork/utils/test/rand"
@@ -92,17 +92,15 @@ func TestBus_Subscribe(t *testing.T) {
 		sub := bus.Subscribe(func(events.ABCIEventWithHeight) bool { return true })
 
 		newBlock := &coretypes.ResultBlockResults{
-			Height:           rand.PosI64(),
-			BeginBlockEvents: randomEvents(rand.I64Between(0, 10)),
-			TxsResults:       randomTxResults(rand.I64Between(1, 10)),
-			EndBlockEvents:   randomEvents(rand.I64Between(0, 10)),
+			Height:              rand.PosI64(),
+			FinalizeBlockEvents: randomEvents(rand.I64Between(0, 10)),
+			TxsResults:          randomTxResults(rand.I64Between(1, 10)),
 		}
 
 		endMarkerBlock := &coretypes.ResultBlockResults{
-			Height:           0,
-			BeginBlockEvents: randomEvents(rand.I64Between(3, 10)),
-			TxsResults:       randomTxResults(rand.I64Between(1, 10)),
-			EndBlockEvents:   randomEvents(rand.I64Between(3, 10)),
+			Height:              0,
+			FinalizeBlockEvents: randomEvents(rand.I64Between(3, 10)),
+			TxsResults:          randomTxResults(rand.I64Between(1, 10)),
 		}
 		newBlocks <- newBlock
 		newBlocks <- endMarkerBlock
@@ -110,7 +108,7 @@ func TestBus_Subscribe(t *testing.T) {
 		timeout, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		expectedEventCount := len(newBlock.BeginBlockEvents) + len(newBlock.EndBlockEvents)
+		expectedEventCount := len(newBlock.FinalizeBlockEvents)
 		for _, result := range newBlock.TxsResults {
 			expectedEventCount += len(result.Events)
 		}
