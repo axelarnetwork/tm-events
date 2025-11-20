@@ -3,6 +3,8 @@ module github.com/axelarnetwork/tm-events
 go 1.25
 
 require (
+	cosmossdk.io/errors v1.0.1
+	cosmossdk.io/log v1.4.1
 	github.com/axelarnetwork/utils v0.0.0-20250317211301-dd7399dbbc5f
 	github.com/cometbft/cometbft v0.38.19
 	github.com/cosmos/cosmos-sdk v0.50.14
@@ -21,8 +23,6 @@ require (
 	cosmossdk.io/collections v0.4.0 // indirect
 	cosmossdk.io/core v0.11.0 // indirect
 	cosmossdk.io/depinject v1.1.0 // indirect
-	cosmossdk.io/errors v1.0.1 // indirect
-	cosmossdk.io/log v1.4.1 // indirect
 	cosmossdk.io/math v1.4.0 // indirect
 	cosmossdk.io/store v1.1.1 // indirect
 	cosmossdk.io/x/tx v0.13.7 // indirect
