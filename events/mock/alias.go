@@ -1,7 +1,7 @@
 package mock
 
 import (
-	tmpubsub "github.com/tendermint/tendermint/libs/pubsub"
+	tmpubsub "github.com/cometbft/cometbft/libs/pubsub"
 )
 
 //go:generate moq -pkg mock -out ./imported.go . Query

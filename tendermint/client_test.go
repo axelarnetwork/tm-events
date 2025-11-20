@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/cometbft/cometbft/rpc/client"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/tendermint/tendermint/rpc/client"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/axelarnetwork/tm-events/tendermint"
 	"github.com/axelarnetwork/tm-events/tendermint/mock"

@@ -3,7 +3,7 @@ package events
 import (
 	"context"
 
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 
 	"github.com/axelarnetwork/utils/log"
 
@@ -80,9 +80,7 @@ func (b *Bus) Done() <-chan struct{} {
 func (b *Bus) publish(ctx context.Context, block *coretypes.ResultBlockResults) error {
 	ctx = log.Append(ctx, "block_height", block.Height)
 
-	// beginBlock and endBlock events are published together as block events
-	blockEvents := append(block.BeginBlockEvents, block.EndBlockEvents...)
-	for _, event := range blockEvents {
+	for _, event := range block.FinalizeBlockEvents {
 		err := b.bus.Publish(ABCIEventWithHeight{
 			Height: block.Height,
 			Event:  event,
