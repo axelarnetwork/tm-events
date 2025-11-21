@@ -8,9 +8,9 @@ require (
 	github.com/axelarnetwork/utils v0.0.0-20250317211301-dd7399dbbc5f
 	github.com/cometbft/cometbft v0.38.19
 	github.com/cosmos/cosmos-sdk v0.50.14
+	github.com/cosmos/gogoproto v1.7.0
 	github.com/cucumber/godog v0.12.5
 	github.com/go-errors/errors v1.5.1
-	github.com/gogo/protobuf v1.3.2
 	github.com/matryer/moq v0.6.0
 	github.com/smallnest/chanx v1.0.1-0.20211205150931-349643806662
 	github.com/spf13/cobra v1.9.1
@@ -39,7 +39,6 @@ require (
 	github.com/cosmos/btcutil v1.0.5 // indirect
 	github.com/cosmos/cosmos-db v1.1.1 // indirect
 	github.com/cosmos/cosmos-proto v1.0.0-beta.5 // indirect
-	github.com/cosmos/gogoproto v1.7.0 // indirect
 	github.com/cosmos/ics23/go v0.11.0 // indirect
 	github.com/cucumber/gherkin-go/v19 v19.0.3 // indirect
 	github.com/cucumber/messages-go/v16 v16.0.1 // indirect
@@ -53,6 +52,7 @@ require (
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v1.2.3 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
